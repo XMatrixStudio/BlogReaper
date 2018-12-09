@@ -1,0 +1,34 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
+    user: User
+}
+
+type Mutation {
+    # createLoginUrl
+    # @params: backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
+    # @returns: String! - 登录地址，可能为空
+    # 
+    # @errors:
+    #   already_login - 已登录
+    createLoginUrl(backUrl: String!): String!
+
+    # login
+    # @params:
+    #   code - 由紫罗兰返回的用户code，可通过Sdk获取用户token
+    #   state - 随机数，防止CSRF攻击
+    # @returns:
+    #   User - 用户信息
+    login(code: String!, state: String!): User
+
+    # logout
+    # @
+    logout: User
+}
+
+type User {
+    name: String!
+}

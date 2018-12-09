@@ -1,0 +1,5 @@
+Violet:
+  ClientID: your_violet_client_id
+  ClientKey: your_violet_client_key
+  ServerHost: https://oauth.xmatrix.studio/api/v2/
+  LoginURL: https://oauth.xmatrix.studio/Verify/Authorize/
