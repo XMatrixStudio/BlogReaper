@@ -12,7 +12,7 @@ func (r *mutationResolver) CreateLoginURL(ctx context.Context, backUrl string) (
 	if r.Session.GetString("id") != "" {
 		return "", errors.New("already_login")
 	}
-	url, state := r.User.GetLoginURL(backUrl)
+	url, state := r.Service.User.GetLoginURL(backUrl)
 	r.Session.Set("state", state)
 	return url, nil
 }

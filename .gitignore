@@ -17,3 +17,5 @@ test/result/*.json
 
 # Config
 config/config.yaml
+config/BlogReaper.db
+config/BlogReaper.db.lock

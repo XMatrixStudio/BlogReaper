@@ -1,9 +1,13 @@
 package service
 
+import "github.com/XMatrixStudio/BlogReaper/model"
+
 type Service struct {
-	User userService
+	User UserService
 }
 
-func (s *Service) GetUserService() UserService {
-	return &s.User
+func NewService() *Service {
+	s, m := &Service{}, model.NewModel()
+	s.User = NewUserService(s, &model.UserModel{m})
+	return s
 }

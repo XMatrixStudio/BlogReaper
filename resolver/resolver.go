@@ -8,7 +8,7 @@ import (
 )
 
 type Resolver struct {
-	User    service.UserService
+	Service *service.Service
 	Session *sessions.Session
 }
 
@@ -17,10 +17,10 @@ var resolver *Resolver
 func DefaultResolver(c Config) *Resolver {
 	if resolver == nil {
 		resolver = &Resolver{
-			User:    service.NewUserService(),
+			Service: service.NewService(),
 			Session: nil,
 		}
-		resolver.User.InitViolet(c.Violet)
+		resolver.Service.User.InitViolet(c.Violet)
 	}
 	return resolver
 }
