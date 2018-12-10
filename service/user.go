@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"github.com/XMatrixStudio/Violet.SDK.Go"
 )
@@ -46,9 +47,12 @@ func (s *userService) LoginByCode(code string) (userID string, err error) {
 	} else if err.Error() == "not_found" { // 数据库不存在此用户
 		userNew, err := s.Violet.GetUserBaseInfo(res.UserID, res.Token)
 		if err != nil {
-			return userID, err
+			return userID, errors.New("violet_error")
 		}
 		err = s.Model.AddUser(res.UserID, res.Token, userNew.Email, userNew.Name, userNew.Info.Avatar, userNew.Info.Bio, userNew.Info.Gender)
+		if err != nil {
+			return userID, errors.New("initial_fail")
+		}
 	}
 	return
 }

@@ -6,8 +6,5 @@ before_install:
   - go get github.com/mattn/goveralls
 script:
   - go build
-  - go test -v ./... -covermode=count -coverprofile=coverage.out
-  - $GOPATH/bin/goveralls -v -coverprofile=coverage.out -service=travis-ci
-env:
-  global:
-    secure: jg53eRWhWxQMrnmapeF+ebfWxvfCPHPCWqbgFC1xBCiU+GzXL7fLRy+y5RWqy0dMDyzPhkuN8gJuQMqKsR1mGfC3+epZr6W8gSo1gWB4RnxlQtsl/mPBUAlL0we85hrWirtgdQU2TJFA8NVoUFe0Khaa17AGwVUXyVrEJCUH66FuAf6PILvhYqs0gnqLlh8803Wkt2IF4ReU8Dvm+e7LHpIHRzUixUkp3rbrDQoZChSESc08v2IoDxVc1D5TYSgzHxpt7L1xA6C8ggtSJjHy4S729xL6kJVH/Dx+EzSoZimlUeMiEiX3fY8c2U7v9Ty/Qd4I6/iB54UOHYNUtsBZVtImZTvmyiTSThL1Oi1ED8WFrKBLWxlXloBOG8gwC6RbKX3o8P373f2tSr7e3Hsh8Jk86jdhubPSDvEpKw7K5PYHYfHT7m1qI/SUmzBRDdfLt6iQlJSWvH7B+oHfFwuJNwhZWJ9cVEF+U0sLitL0saCr+fg+kdETqRjZ1mGJtW4ub2pb83kgEk0908O7aX2e5y7p5Ca1w/t8FzDaBkMbwxUYlajhZxUtYvVk+CAbQX22PDOL1kgVt019XNkU244mCty/VWMxq6QKWl5Ek79yJfVtnXlx9HyRaqTmqgd1GdV/i3KH7OzINpR2e/+Tl2i63taR1qQAkToNnoKx5dIHRgY=
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then go test -v ./... -covermode=count -coverprofile=coverage.out; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then $GOPATH/bin/goveralls -v -coverprofile=coverage.out -service=travis-ci; fi'

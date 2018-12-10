@@ -31,10 +31,10 @@ func (r *mutationResolver) Login(ctx context.Context, code string, state string)
 	return nil, nil
 }
 
-func (r *mutationResolver) Logout(ctx context.Context) (*graphql.User, error) {
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 	if r.Session.GetString("id") == "" {
-		return nil, errors.New("not_login")
+		return false, errors.New("not_login")
 	}
 	r.Session.Delete("id")
-	return nil, nil
+	return true, nil
 }

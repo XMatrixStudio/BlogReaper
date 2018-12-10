@@ -3,5 +3,14 @@
 package graphql
 
 type User struct {
-	Name string `json:"name"`
+	ID    string   `json:"id"`
+	Email string   `json:"email"`
+	Info  UserInfo `json:"info"`
+}
+
+type UserInfo struct {
+	Name   string  `json:"name"`
+	Avatar string  `json:"avatar"`
+	Bio    *string `json:"bio"`
+	Gender *int    `json:"gender"`
 }

@@ -22,13 +22,30 @@ type Mutation {
     #   state - 随机数，防止CSRF攻击
     # @returns:
     #   User - 用户信息
+    #
+    # @errors:
+    #   already_login - 已登录
+    #   error_state - 状态数错误
+    #   violet_error - 从紫罗兰获取数据错误
+    #   initial_fail - 初始化用户失败
     login(code: String!, state: String!): User
 
     # logout
-    # @
-    logout: User
+    #
+    # @errors:
+    #   not_login - 未登录
+    logout: Boolean!
 }
 
 type User {
+    id: String!
+    email: String!
+    info: UserInfo!
+}
+
+type UserInfo {
     name: String!
+    avatar: String!
+    bio: String
+    gender: Int
 }
