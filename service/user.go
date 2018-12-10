@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"github.com/XMatrixStudio/Violet.SDK.Go"
 )
@@ -10,6 +11,7 @@ type UserService interface {
 	InitViolet(c violetSdk.Config)
 	GetLoginURL(backURL string) (url, state string)
 	LoginByCode(code string) (userID string, err error)
+	GetUserInfo(id string) (user graphql.User, err error)
 }
 
 type userService struct {
@@ -53,6 +55,24 @@ func (s *userService) LoginByCode(code string) (userID string, err error) {
 		if err != nil {
 			return userID, errors.New("initial_fail")
 		}
+	}
+	return
+}
+
+func (s *userService) GetUserInfo(id string) (user graphql.User, err error) {
+	modelUser, err := s.Model.GetUserByID(id)
+	if err != nil {
+		return graphql.User{}, errors.New("not_found")
+	}
+	user = graphql.User{
+		ID:    modelUser.VioletID.Hex(),
+		Email: modelUser.Email,
+		Info: graphql.UserInfo{
+			Name:   modelUser.Info.Name,
+			Avatar: modelUser.Info.Avatar,
+			Bio:    modelUser.Info.Bio,
+			Gender: modelUser.Info.Gender,
+		},
 	}
 	return
 }

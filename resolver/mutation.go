@@ -28,7 +28,11 @@ func (r *mutationResolver) Login(ctx context.Context, code string, state string)
 		return nil, err
 	}
 	r.Session.Set("id", userID)
-	return nil, nil
+	user, err := r.Service.User.GetUserInfo(userID)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {

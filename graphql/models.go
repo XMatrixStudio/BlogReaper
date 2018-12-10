@@ -9,8 +9,8 @@ type User struct {
 }
 
 type UserInfo struct {
-	Name   string  `json:"name"`
-	Avatar string  `json:"avatar"`
-	Bio    *string `json:"bio"`
-	Gender *int    `json:"gender"`
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
+	Bio    string `json:"bio"`
+	Gender int    `json:"gender"`
 }

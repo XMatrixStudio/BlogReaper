@@ -23,7 +23,7 @@ func App(c Config) http.Handler {
 }
 
 func TestApp() http.Handler {
-	clientKey := os.Getenv("clientKey")
+	clientKey := os.Getenv("ClientKey")
 	if clientKey == "" {
 		return nil
 	}

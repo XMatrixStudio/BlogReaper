@@ -4,6 +4,13 @@ schema {
 }
 
 type Query {
+    # user
+    # @returns:
+    #   User - 用户信息
+    #
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 找不到该用户
     user: User
 }
 
@@ -46,6 +53,6 @@ type User {
 type UserInfo {
     name: String!
     avatar: String!
-    bio: String
-    gender: Int
+    bio: String!
+    gender: Int!
 }

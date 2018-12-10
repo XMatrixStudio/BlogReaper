@@ -719,8 +719,14 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "bio":
 			out.Values[i] = ec._UserInfo_bio(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "gender":
 			out.Values[i] = ec._UserInfo_gender(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -802,16 +808,15 @@ func (ec *executionContext) _UserInfo_bio(ctx context.Context, field graphql.Col
 		return obj.Bio, nil
 	})
 	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-
-	if res == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalString(*res)
+	return graphql.MarshalString(res)
 }
 
 // nolint: vetshadow
@@ -830,16 +835,15 @@ func (ec *executionContext) _UserInfo_gender(ctx context.Context, field graphql.
 		return obj.Gender, nil
 	})
 	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-
-	if res == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalInt(*res)
+	return graphql.MarshalInt(res)
 }
 
 var __DirectiveImplementors = []string{"__Directive"}
@@ -2323,6 +2327,13 @@ var parsedSchema = gqlparser.MustLoadSchema(
 }
 
 type Query {
+    # user
+    # @returns:
+    #   User - 用户信息
+    #
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 找不到该用户
     user: User
 }
 
@@ -2365,8 +2376,8 @@ type User {
 type UserInfo {
     name: String!
     avatar: String!
-    bio: String
-    gender: Int
+    bio: String!
+    gender: Int!
 }
 `},
 )

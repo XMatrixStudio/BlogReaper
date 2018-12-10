@@ -1,7 +1,6 @@
 package resolver
 
 import (
-	"context"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/service"
 	"github.com/kataras/go-sessions"
@@ -30,10 +29,4 @@ func (r *Resolver) Mutation() graphql.MutationResolver {
 
 func (r *Resolver) Query() graphql.QueryResolver {
 	return &queryResolver{r}
-}
-
-type queryResolver struct{ *Resolver }
-
-func (r *queryResolver) User(ctx context.Context) (*graphql.User, error) {
-	panic("not implemented")
 }
