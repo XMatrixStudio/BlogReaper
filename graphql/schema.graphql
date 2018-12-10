@@ -42,10 +42,13 @@ type Mutation {
     # @errors:
     #   not_login - 未登录
     logout: Boolean!
+
+    addContent(url: String!, categoryId: String!): Content!
+    editContent(url: String!, title: String!, categoryId: String!): Content!
+    removeContent(url: String!): Boolean
 }
 
 type User {
-    id: String!
     email: String!
     info: UserInfo!
 }
@@ -55,4 +58,28 @@ type UserInfo {
     avatar: String!
     bio: String!
     gender: Int!
+}
+
+type Content {
+    url: String!
+    title: String!
+    subtitle: String!
+    categoryId: String!
+    entries: [ContentEntry!]!
+}
+
+type Category {
+    id: String!
+    name: String!
+    contents: [Content!]!
+}
+
+type ContentEntry {
+    url: String!
+    title: String!
+    published: String!
+    updated: String!
+    content: String!
+    summary: String!
+    categories: [String!]!
 }
