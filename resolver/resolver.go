@@ -14,13 +14,12 @@ type Resolver struct {
 
 var resolver *Resolver
 
-func DefaultResolver(c Config) *Resolver {
+func DefaultResolver() *Resolver {
 	if resolver == nil {
 		resolver = &Resolver{
 			Service: service.NewService(),
 			Session: nil,
 		}
-		resolver.Service.User.InitViolet(c.Violet)
 	}
 	return resolver
 }

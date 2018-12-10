@@ -1,4 +1,4 @@
-package resolver
+package app
 
 import "github.com/XMatrixStudio/Violet.SDK.Go"
 

@@ -23,11 +23,18 @@ func (r *mutationResolver) Login(ctx context.Context, code string, state string)
 	} else if r.Session.GetString("state") != state {
 		return nil, errors.New("error_state")
 	}
-	// TODO
+	userID, err := r.Service.User.LoginByCode(code)
+	if err != nil {
+		return nil, err
+	}
+	r.Session.Set("id", userID)
 	return nil, nil
 }
 
 func (r *mutationResolver) Logout(ctx context.Context) (*graphql.User, error) {
-	panic("not implemented")
-	// TODO
+	if r.Session.GetString("id") == "" {
+		return nil, errors.New("not_login")
+	}
+	r.Session.Delete("id")
+	return nil, nil
 }

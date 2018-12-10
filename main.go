@@ -2,10 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/99designs/gqlgen/handler"
-	"github.com/XMatrixStudio/BlogReaper/graphql"
-	"github.com/XMatrixStudio/BlogReaper/resolver"
-	"github.com/go-chi/chi"
+	"github.com/XMatrixStudio/BlogReaper/app"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -22,17 +19,7 @@ func main() {
 		return
 	}
 	log.Printf("Load the config file in %v", *configFile)
-	conf := resolver.Config{}
+	conf := app.Config{}
 	yaml.Unmarshal(data, &conf)
-	log.Fatal(http.ListenAndServe(":30038", app(conf)))
-}
-
-func app(c resolver.Config) http.Handler {
-	r := chi.NewRouter()
-	r.Use(resolver.SessionHttpMiddleware)
-	r.Handle("/", handler.Playground("BlogReaper", "/graphql"))
-	r.Handle("/graphql", handler.GraphQL(graphql.NewExecutableSchema(graphql.Config{
-		Resolvers: resolver.DefaultResolver(c),
-	}), handler.ResolverMiddleware(resolver.SessionResolverMiddleware)))
-	return r
+	log.Fatal(http.ListenAndServe(":30038", app.App(conf)))
 }
