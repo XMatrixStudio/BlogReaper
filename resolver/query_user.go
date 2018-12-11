@@ -6,8 +6,6 @@ import (
 	"github.com/kataras/iris/core/errors"
 )
 
-type queryResolver struct{ *Resolver }
-
 func (r *queryResolver) User(ctx context.Context) (*graphql.User, error) {
 	userID := r.Session.GetString("id")
 	if userID == "" {

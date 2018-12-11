@@ -65,7 +65,6 @@ func (s *userService) GetUserInfo(id string) (user graphql.User, err error) {
 		return graphql.User{}, errors.New("not_found")
 	}
 	user = graphql.User{
-		ID:    modelUser.VioletID.Hex(),
 		Email: modelUser.Email,
 		Info: graphql.UserInfo{
 			Name:   modelUser.Info.Name,

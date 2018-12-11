@@ -23,9 +23,13 @@ func DefaultResolver() *Resolver {
 	return resolver
 }
 
+type mutationResolver struct{ *Resolver }
+
 func (r *Resolver) Mutation() graphql.MutationResolver {
 	return &mutationResolver{r}
 }
+
+type queryResolver struct{ *Resolver }
 
 func (r *Resolver) Query() graphql.QueryResolver {
 	return &queryResolver{r}

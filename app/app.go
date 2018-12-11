@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/resolver"
@@ -25,6 +26,7 @@ func App(c Config) http.Handler {
 func TestApp() http.Handler {
 	clientKey := os.Getenv("ClientKey")
 	if clientKey == "" {
+		fmt.Println("Client Key Not Found")
 		return nil
 	}
 	return App(Config{

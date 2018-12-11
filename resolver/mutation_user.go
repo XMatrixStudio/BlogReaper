@@ -2,11 +2,9 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
-	"github.com/kataras/iris/core/errors"
 )
-
-type mutationResolver struct{ *Resolver }
 
 func (r *mutationResolver) CreateLoginURL(ctx context.Context, backUrl string) (string, error) {
 	if r.Session.GetString("id") != "" {

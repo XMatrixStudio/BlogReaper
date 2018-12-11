@@ -5,31 +5,35 @@ schema {
 
 type Query {
     # user
+    #
     # @returns:
     #   User - 用户信息
-    #
     # @errors:
     #   not_login - 未登录
     #   not_found - 找不到该用户
     user: User
+
+    categories: [Category]
 }
 
 type Mutation {
     # createLoginUrl
-    # @params: backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
-    # @returns: String! - 登录地址，可能为空
-    # 
+    #
+    # @params:
+    #   backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
+    # @returns:
+    #   String! - 登录地址，可能为空
     # @errors:
     #   already_login - 已登录
     createLoginUrl(backUrl: String!): String!
 
     # login
+    #
     # @params:
     #   code - 由紫罗兰返回的用户code，可通过Sdk获取用户token
     #   state - 随机数，防止CSRF攻击
     # @returns:
     #   User - 用户信息
-    #
     # @errors:
     #   already_login - 已登录
     #   error_state - 状态数错误
@@ -42,10 +46,23 @@ type Mutation {
     # @errors:
     #   not_login - 未登录
     logout: Boolean!
+    
+    # addFeed
+    #
+    # @params:
+    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
+    #   categoryId - 分类Id，不为空时考虑优先考虑
+    #   categoryName - 分类名字，Id为空时，创建新的分类
+    # @returns:
+    #   Category - 只包含添加的订阅的分类
+    # @errors:
+    #   
+    addFeed(url: String!, categoryId: String, categoryName: String): Category
 
-    addContent(url: String!, categoryId: String!): Content!
-    editContent(url: String!, title: String!, categoryId: String!): Content!
-    removeContent(url: String!): Boolean
+    editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
+    editCategory(id: String!, name: String!): Boolean!
+    editFeed(url: String!, title: String, categoryId: String): Boolean!
+    removeFeed(url: String!): Boolean!
 }
 
 type User {
@@ -60,21 +77,21 @@ type UserInfo {
     gender: Int!
 }
 
-type Content {
+type Feed {
     url: String!
     title: String!
     subtitle: String!
     categoryId: String!
-    entries: [ContentEntry!]!
+    articles: [Article!]!
 }
 
 type Category {
     id: String!
     name: String!
-    contents: [Content!]!
+    feeds: [Feed!]!
 }
 
-type ContentEntry {
+type Article {
     url: String!
     title: String!
     published: String!
@@ -82,4 +99,6 @@ type ContentEntry {
     content: String!
     summary: String!
     categories: [String!]!
+    read: Boolean!
+    later: Boolean!
 }

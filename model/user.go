@@ -32,8 +32,7 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 	if !bson.IsObjectIdHex(id) {
 		return user, errors.New("not_id")
 	}
-	m.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("user"))
+	m.View(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		if bytes == nil {
 			err = errors.New("not_found")
@@ -50,8 +49,7 @@ func (m *UserModel) AddUser(id, token, email, name, avatar, bio string, gender i
 	if !bson.IsObjectIdHex(id) {
 		return errors.New("not_id")
 	}
-	return m.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("user"))
+	return m.Update(func(b *bolt.Bucket) error {
 		bytes, err := json.Marshal(User{
 			VioletID: bson.ObjectIdHex(id),
 			Token:    token,
@@ -77,8 +75,7 @@ func (m *UserModel) SetUserToken(id, token string) error {
 	if !bson.IsObjectIdHex(id) {
 		return errors.New("not_id")
 	}
-	return m.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("user"))
+	return m.Update(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		user := User{}
 		json.Unmarshal(bytes, &user)
