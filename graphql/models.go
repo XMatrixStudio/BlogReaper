@@ -21,11 +21,10 @@ type Category struct {
 }
 
 type Feed struct {
-	URL        string    `json:"url"`
-	Title      string    `json:"title"`
-	Subtitle   string    `json:"subtitle"`
-	CategoryID string    `json:"categoryId"`
-	Articles   []Article `json:"articles"`
+	URL      string    `json:"url"`
+	Title    string    `json:"title"`
+	Subtitle string    `json:"subtitle"`
+	Articles []Article `json:"articles"`
 }
 
 type User struct {

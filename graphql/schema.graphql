@@ -81,7 +81,6 @@ type Feed {
     url: String!
     title: String!
     subtitle: String!
-    categoryId: String!
     articles: [Article!]!
 }
 
