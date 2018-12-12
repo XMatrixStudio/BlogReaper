@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
@@ -21,10 +20,11 @@ type User struct {
 
 // UserInfo 用户个性信息
 type UserInfo struct {
-	Name   string `bson:"name"`   // 用户昵称
-	Avatar string `bson:"avatar"` // 头像URL
-	Bio    string `bson:"bio"`    // 个人简介
-	Gender int    `bson:"gender"` // 性别
+	Name   		string 		`bson:"name"`		// 用户昵称
+	Avatar 		string 		`bson:"avatar"`		// 头像URL
+	Bio    		string 		`bson:"bio"`		// 个人简介
+	Gender 		int    		`bson:"gender"`		// 性别
+	Categories 	[]Category 	`bson:"categories"`	// 订阅分类
 }
 
 // GetUserByID 根据ID查询用户
@@ -37,7 +37,7 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 		if bytes == nil {
 			err = errors.New("not_found")
 		} else {
-			json.Unmarshal(bytes, &user)
+			bson.Unmarshal(bytes, &user)
 		}
 		return nil
 	})
@@ -50,7 +50,7 @@ func (m *UserModel) AddUser(id, token, email, name, avatar, bio string, gender i
 		return errors.New("not_id")
 	}
 	return m.Update(func(b *bolt.Bucket) error {
-		bytes, err := json.Marshal(User{
+		bytes, err := bson.Marshal(User{
 			VioletID: bson.ObjectIdHex(id),
 			Token:    token,
 			Email:    email,
@@ -78,9 +78,9 @@ func (m *UserModel) SetUserToken(id, token string) error {
 	return m.Update(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		user := User{}
-		json.Unmarshal(bytes, &user)
+		bson.Unmarshal(bytes, &user)
 		user.Token = token
-		bytes, err := json.Marshal(user)
+		bytes, err := bson.Marshal(user)
 		if err != nil {
 			return err
 		}
