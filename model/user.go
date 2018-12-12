@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
@@ -38,7 +37,7 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 		if bytes == nil {
 			err = errors.New("not_found")
 		} else {
-			json.Unmarshal(bytes, &user)
+			bson.Unmarshal(bytes, &user)
 		}
 		return nil
 	})
@@ -51,7 +50,7 @@ func (m *UserModel) AddUser(id, token, email, name, avatar, bio string, gender i
 		return errors.New("not_id")
 	}
 	return m.Update(func(b *bolt.Bucket) error {
-		bytes, err := json.Marshal(User{
+		bytes, err := bson.Marshal(User{
 			VioletID: bson.ObjectIdHex(id),
 			Token:    token,
 			Email:    email,
@@ -79,9 +78,9 @@ func (m *UserModel) SetUserToken(id, token string) error {
 	return m.Update(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		user := User{}
-		json.Unmarshal(bytes, &user)
+		bson.Unmarshal(bytes, &user)
 		user.Token = token
-		bytes, err := json.Marshal(user)
+		bytes, err := bson.Marshal(user)
 		if err != nil {
 			return err
 		}

@@ -58,11 +58,10 @@ type ComplexityRoot struct {
 	}
 
 	Feed struct {
-		Url        func(childComplexity int) int
-		Title      func(childComplexity int) int
-		Subtitle   func(childComplexity int) int
-		CategoryId func(childComplexity int) int
-		Articles   func(childComplexity int) int
+		Url      func(childComplexity int) int
+		Title    func(childComplexity int) int
+		Subtitle func(childComplexity int) int
+		Articles func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -478,13 +477,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.Subtitle(childComplexity), true
-
-	case "Feed.categoryId":
-		if e.complexity.Feed.CategoryId == nil {
-			break
-		}
-
-		return e.complexity.Feed.CategoryId(childComplexity), true
 
 	case "Feed.articles":
 		if e.complexity.Feed.Articles == nil {
@@ -1191,11 +1183,6 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
-		case "categoryId":
-			out.Values[i] = ec._Feed_categoryId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalid = true
-			}
 		case "articles":
 			out.Values[i] = ec._Feed_articles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -1280,33 +1267,6 @@ func (ec *executionContext) _Feed_subtitle(ctx context.Context, field graphql.Co
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Subtitle, nil
-	})
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return graphql.MarshalString(res)
-}
-
-// nolint: vetshadow
-func (ec *executionContext) _Feed_categoryId(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
-	rctx := &graphql.ResolverContext{
-		Object: "Feed",
-		Args:   nil,
-		Field:  field,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CategoryID, nil
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -3706,7 +3666,6 @@ type Feed {
     url: String!
     title: String!
     subtitle: String!
-    categoryId: String!
     articles: [Article!]!
 }
 
