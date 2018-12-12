@@ -6,5 +6,6 @@ import (
 )
 
 func (r *queryResolver) Categories(ctx context.Context) ([]*graphql.Category, error) {
+
 	panic("not implemented")
 }
