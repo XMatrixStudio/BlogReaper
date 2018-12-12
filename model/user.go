@@ -21,10 +21,11 @@ type User struct {
 
 // UserInfo 用户个性信息
 type UserInfo struct {
-	Name   string `bson:"name"`   // 用户昵称
-	Avatar string `bson:"avatar"` // 头像URL
-	Bio    string `bson:"bio"`    // 个人简介
-	Gender int    `bson:"gender"` // 性别
+	Name   		string 		`bson:"name"`		// 用户昵称
+	Avatar 		string 		`bson:"avatar"`		// 头像URL
+	Bio    		string 		`bson:"bio"`		// 个人简介
+	Gender 		int    		`bson:"gender"`		// 性别
+	Categories 	[]Category 	`bson:"categories"`	// 订阅分类
 }
 
 // GetUserByID 根据ID查询用户

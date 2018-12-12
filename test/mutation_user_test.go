@@ -49,6 +49,8 @@ func TestMutationResolver_CreateLoginURL(t *testing.T) {
 
 func TestMutationResolver_Login(t *testing.T) {
 	// TODO
+
+
 }
 
 func TestMutationResolver_Logout(t *testing.T) {
