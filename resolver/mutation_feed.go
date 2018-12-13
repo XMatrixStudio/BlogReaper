@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"io/ioutil"
 	"net/http"
@@ -18,7 +19,6 @@ type feed struct {
 type entry struct {
 	Title string     `xml:"title"`
 	Link link 		 `xml:"link"`
-	Href string      `xml:"href, attr"`
 	Published string `xml:"published"`
 	Updated string   `xml:"updated"`
 	Content string   `xml:"content"`
@@ -45,7 +45,8 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string, categoryId *
 	var result feed
 	// 解析atom.xml
 	err = xml.Unmarshal(con, &result)
-	//return nil, nil
+	fmt.Println(result.Entrys)
+	return nil, nil
 }
 
 func (r *mutationResolver) EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error) {
