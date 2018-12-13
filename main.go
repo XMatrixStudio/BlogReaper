@@ -21,5 +21,5 @@ func main() {
 	log.Printf("Load the config file in %v", *configFile)
 	conf := app.Config{}
 	yaml.Unmarshal(data, &conf)
-	log.Fatal(http.ListenAndServe(":30038", app.App(conf)))
+	log.Fatal(http.ListenAndServe(":30003", app.App(conf)))
 }

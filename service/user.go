@@ -1,13 +1,12 @@
 package service
 
 import (
+	"encoding/xml"
 	"errors"
 	"flag"
-	"fmt"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"github.com/XMatrixStudio/Violet.SDK.Go"
-	"github.com/globalsign/mgo/bson"
 )
 
 type UserService interface {
@@ -38,9 +37,13 @@ func (s *userService) GetLoginURL(backUrl string) (url, state string) {
 	return s.Violet.GetLoginURL(backUrl)
 }
 
+type TestLoginParameters struct {
+	violetSdk.TokenRes
+	violetSdk.UserInfoRes
+}
+
 func (s *userService) LoginByCode(code string) (userID string, err error) {
-	if flag.Lookup("test.v") != nil {
-		fmt.Println("normal run")
+	if flag.Lookup("test.v") == nil {
 		// 获取用户Token
 		res, err := s.Violet.GetToken(code)
 		if err != nil {
@@ -62,18 +65,17 @@ func (s *userService) LoginByCode(code string) (userID string, err error) {
 			}
 		}
 	} else {
-		fmt.Println("run under go test")
-		userID = string(bson.NewObjectId())
-		fmt.Println(userID)
-		user, err := s.Model.GetUserByID(userID)
+		testParam := TestLoginParameters{}
+		xml.Unmarshal([]byte(code), &testParam)
+		userID = testParam.UserID
+		_, err := s.Model.GetUserByID(userID)
 		if err != nil {
 			// 测试伪造用户
-			fmt.Println(1)
-			err = s.Model.AddUser(userID, "faker_token", "faker@qq.com", "faker", "", "xxx", 0)
+			err = s.Model.AddUser(userID, testParam.Token, testParam.Email, testParam.Name, testParam.Info.Avatar, testParam.Info.Bio, testParam.Info.Gender)
 			return userID, err
 		} else {
-			s.Model.SetUserToken(string(user.VioletID), "faker_token")
-			return string(user.VioletID), nil
+			s.Model.SetUserToken(userID, testParam.Token)
+			return userID, nil
 		}
 	}
 	return

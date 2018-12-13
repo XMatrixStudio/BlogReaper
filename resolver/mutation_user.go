@@ -16,11 +16,11 @@ func (r *mutationResolver) CreateLoginURL(ctx context.Context, backUrl string) (
 }
 
 func (r *mutationResolver) Login(ctx context.Context, code string, state string) (*graphql.User, error) {
-	//if r.Session.GetString("id") != "" {
-	//	return nil, errors.New("already_login")
-	//} else if r.Session.GetString("state") != state {
-	//	return nil, errors.New("error_state")
-	//}
+	if r.Session.GetString("id") != "" {
+		return nil, errors.New("already_login")
+	} else if r.Session.GetString("state") != state {
+		return nil, errors.New("error_state")
+	}
 	userID, err := r.Service.User.LoginByCode(code)
 	if err != nil {
 		return nil, err

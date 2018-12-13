@@ -20,11 +20,11 @@ type User struct {
 
 // UserInfo 用户个性信息
 type UserInfo struct {
-	Name   		string 		`bson:"name"`		// 用户昵称
-	Avatar 		string 		`bson:"avatar"`		// 头像URL
-	Bio    		string 		`bson:"bio"`		// 个人简介
-	Gender 		int    		`bson:"gender"`		// 性别
-	Categories 	[]Category 	`bson:"categories"`	// 订阅分类
+	Name       string     `bson:"name"`       // 用户昵称
+	Avatar     string     `bson:"avatar"`     // 头像URL
+	Bio        string     `bson:"bio"`        // 个人简介
+	Gender     int        `bson:"gender"`     // 性别
+	Categories []Category `bson:"categories"` // 订阅分类
 }
 
 // GetUserByID 根据ID查询用户
@@ -32,7 +32,7 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 	if !bson.IsObjectIdHex(id) {
 		return user, errors.New("not_id")
 	}
-	m.View(func(b *bolt.Bucket) error {
+	return user, m.View(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		if bytes == nil {
 			err = errors.New("not_found")
@@ -41,7 +41,6 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 		}
 		return nil
 	})
-	return
 }
 
 // AddUser 添加用户
@@ -50,7 +49,7 @@ func (m *UserModel) AddUser(id, token, email, name, avatar, bio string, gender i
 		return errors.New("not_id")
 	}
 	return m.Update(func(b *bolt.Bucket) error {
-		bytes, err := bson.Marshal(User{
+		bytes, err := bson.Marshal(&User{
 			VioletID: bson.ObjectIdHex(id),
 			Token:    token,
 			Email:    email,
@@ -80,7 +79,7 @@ func (m *UserModel) SetUserToken(id, token string) error {
 		user := User{}
 		bson.Unmarshal(bytes, &user)
 		user.Token = token
-		bytes, err := bson.Marshal(user)
+		bytes, err := bson.Marshal(&user)
 		if err != nil {
 			return err
 		}
