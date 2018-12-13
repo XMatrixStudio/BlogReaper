@@ -13,7 +13,7 @@ type PublicFeed struct {
 }
 
 type PublicArticle struct {
-	URL        string   `bson:"url"`
+	URL        string   `bson:"url" xml:""`
 	Title      string   `bson:"title"`
 	Published  string   `bson:"published"`
 	Updated    string   `bson:"updated"`
