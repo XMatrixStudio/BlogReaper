@@ -7,18 +7,13 @@ import (
 )
 
 func (r *mutationResolver) CreateLoginURL(ctx context.Context, backUrl string) (string, error) {
-	if r.Session.GetString("id") != "" {
-		return "", errors.New("already_login")
-	}
 	url, state := r.Service.User.GetLoginURL(backUrl)
 	r.Session.Set("state", state)
 	return url, nil
 }
 
 func (r *mutationResolver) Login(ctx context.Context, code string, state string) (*graphql.User, error) {
-	if r.Session.GetString("id") != "" {
-		return nil, errors.New("already_login")
-	} else if r.Session.GetString("state") != state {
+	if r.Session.GetString("state") != state {
 		return nil, errors.New("error_state")
 	}
 	userID, err := r.Service.User.LoginByCode(code)
@@ -34,9 +29,6 @@ func (r *mutationResolver) Login(ctx context.Context, code string, state string)
 }
 
 func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
-	if r.Session.GetString("id") == "" {
-		return false, errors.New("not_login")
-	}
 	r.Session.Delete("id")
 	return true, nil
 }
