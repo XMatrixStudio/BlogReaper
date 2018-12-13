@@ -45,8 +45,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string, categoryId *
 	var result feed
 	// 解析atom.xml
 	err = xml.Unmarshal(con, &result)
-
-	return nil, nil
+	//return nil, nil
 }
 
 func (r *mutationResolver) EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error) {
