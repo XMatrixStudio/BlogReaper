@@ -3,3 +3,5 @@ Violet:
   ClientKey: your_violet_client_key
   ServerHost: https://oauth.xmatrix.studio/api/v2/
   LoginURL: https://oauth.xmatrix.studio/Verify/Authorize/
+Server:
+  Port: 30003
