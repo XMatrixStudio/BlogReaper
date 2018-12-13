@@ -51,10 +51,11 @@ func (s *userService) LoginByCode(code string) (userID string, err error) {
 		}
 		// 保存数据并获取用户信息
 		user, err := s.Model.GetUserByID(res.UserID)
-		userID = user.VioletID.Hex()
 		if err == nil { // 数据库已存在该用户
+			userID = res.UserID
 			s.Model.SetUserToken(user.VioletID.Hex(), res.Token)
-		} else if err.Error() == "not_found" { // 数据库不存在此用户
+		} else { // 数据库不存在此用户
+			userID = res.UserID
 			userNew, err := s.Violet.GetUserBaseInfo(res.UserID, res.Token)
 			if err != nil {
 				return userID, errors.New("violet_error")
@@ -78,7 +79,7 @@ func (s *userService) LoginByCode(code string) (userID string, err error) {
 			return userID, nil
 		}
 	}
-	return
+	return userID, nil
 }
 
 func (s *userService) GetUserInfo(id string) (user graphql.User, err error) {
