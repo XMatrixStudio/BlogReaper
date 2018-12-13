@@ -34,7 +34,7 @@ func (m *UserModel) GetUserByID(id string) (user User, err error) {
 	return user, m.View(func(b *bolt.Bucket) error {
 		bytes := b.Get([]byte(id))
 		if bytes == nil {
-			err = errors.New("not_found")
+			return errors.New("not_found")
 		} else {
 			bson.Unmarshal(bytes, &user)
 		}

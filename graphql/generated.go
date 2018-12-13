@@ -68,7 +68,8 @@ type ComplexityRoot struct {
 		CreateLoginUrl func(childComplexity int, backUrl string) int
 		Login          func(childComplexity int, code string, state string) int
 		Logout         func(childComplexity int) int
-		AddFeed        func(childComplexity int, url string, categoryId *string, categoryName *string) int
+		AddCategory    func(childComplexity int, name string) int
+		AddFeed        func(childComplexity int, url string, categoryId string) int
 		EditArticle    func(childComplexity int, url string, read *bool, later *bool) int
 		EditCategory   func(childComplexity int, id string, name string) int
 		EditFeed       func(childComplexity int, url string, title *string, categoryId *string) int
@@ -97,7 +98,8 @@ type MutationResolver interface {
 	CreateLoginURL(ctx context.Context, backUrl string) (string, error)
 	Login(ctx context.Context, code string, state string) (*User, error)
 	Logout(ctx context.Context) (bool, error)
-	AddFeed(ctx context.Context, url string, categoryId *string, categoryName *string) (*Category, error)
+	AddCategory(ctx context.Context, name string) (*Category, error)
+	AddFeed(ctx context.Context, url string, categoryId string) (*Feed, error)
 	EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error)
 	EditCategory(ctx context.Context, id string, name string) (bool, error)
 	EditFeed(ctx context.Context, url string, title *string, categoryId *string) (bool, error)
@@ -105,7 +107,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	User(ctx context.Context) (*User, error)
-	Categories(ctx context.Context) ([]*Category, error)
+	Categories(ctx context.Context) ([]Category, error)
 }
 
 func field_Mutation_createLoginUrl_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
@@ -147,6 +149,21 @@ func field_Mutation_login_args(rawArgs map[string]interface{}) (map[string]inter
 
 }
 
+func field_Mutation_addCategory_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalString(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+
+}
+
 func field_Mutation_addFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 string
@@ -158,34 +175,15 @@ func field_Mutation_addFeed_args(rawArgs map[string]interface{}) (map[string]int
 		}
 	}
 	args["url"] = arg0
-	var arg1 *string
+	var arg1 string
 	if tmp, ok := rawArgs["categoryId"]; ok {
 		var err error
-		var ptr1 string
-		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg1 = &ptr1
-		}
-
+		arg1, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["categoryId"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["categoryName"]; ok {
-		var err error
-		var ptr1 string
-		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg2 = &ptr1
-		}
-
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["categoryName"] = arg2
 	return args, nil
 
 }
@@ -516,6 +514,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Logout(childComplexity), true
 
+	case "Mutation.addCategory":
+		if e.complexity.Mutation.AddCategory == nil {
+			break
+		}
+
+		args, err := field_Mutation_addCategory_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddCategory(childComplexity, args["name"].(string)), true
+
 	case "Mutation.addFeed":
 		if e.complexity.Mutation.AddFeed == nil {
 			break
@@ -526,7 +536,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddFeed(childComplexity, args["url"].(string), args["categoryId"].(*string), args["categoryName"].(*string)), true
+		return e.complexity.Mutation.AddFeed(childComplexity, args["url"].(string), args["categoryId"].(string)), true
 
 	case "Mutation.editArticle":
 		if e.complexity.Mutation.EditArticle == nil {
@@ -1370,6 +1380,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "addCategory":
+			out.Values[i] = ec._Mutation_addCategory(ctx, field)
 		case "addFeed":
 			out.Values[i] = ec._Mutation_addFeed(ctx, field)
 		case "editArticle":
@@ -1499,6 +1511,41 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 }
 
 // nolint: vetshadow
+func (ec *executionContext) _Mutation_addCategory(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_addCategory_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddCategory(rctx, args["name"].(string))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*Category)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Category(ctx, field.Selections, res)
+}
+
+// nolint: vetshadow
 func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
@@ -1517,12 +1564,12 @@ func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddFeed(rctx, args["url"].(string), args["categoryId"].(*string), args["categoryName"].(*string))
+		return ec.resolvers.Mutation().AddFeed(rctx, args["url"].(string), args["categoryId"].(string))
 	})
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*Category)
+	res := resTmp.(*Feed)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
@@ -1530,7 +1577,7 @@ func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql
 		return graphql.Null
 	}
 
-	return ec._Category(ctx, field.Selections, res)
+	return ec._Feed(ctx, field.Selections, res)
 }
 
 // nolint: vetshadow
@@ -1758,7 +1805,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*Category)
+	res := resTmp.([]Category)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
@@ -1774,7 +1821,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 		idx1 := idx1
 		rctx := &graphql.ResolverContext{
 			Index:  &idx1,
-			Result: res[idx1],
+			Result: &res[idx1],
 		}
 		ctx := graphql.WithResolverContext(ctx, rctx)
 		f := func(idx1 int) {
@@ -1783,11 +1830,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 			}
 			arr1[idx1] = func() graphql.Marshaler {
 
-				if res[idx1] == nil {
-					return graphql.Null
-				}
-
-				return ec._Category(ctx, field.Selections, res[idx1])
+				return ec._Category(ctx, field.Selections, &res[idx1])
 			}()
 		}
 		if isLen1 {
@@ -3598,7 +3641,7 @@ type Query {
     #   not_found - 找不到该用户
     user: User
 
-    categories: [Category]
+    categories: [Category!]
 }
 
 type Mutation {
@@ -3609,7 +3652,6 @@ type Mutation {
     # @returns:
     #   String! - 登录地址，可能为空
     # @errors:
-    #   already_login - 已登录
     createLoginUrl(backUrl: String!): String!
 
     # login
@@ -3620,7 +3662,6 @@ type Mutation {
     # @returns:
     #   User - 用户信息
     # @errors:
-    #   already_login - 已登录
     #   error_state - 状态数错误
     #   violet_error - 从紫罗兰获取数据错误
     #   initial_fail - 初始化用户失败
@@ -3629,20 +3670,29 @@ type Mutation {
     # logout
     #
     # @errors:
-    #   not_login - 未登录
     logout: Boolean!
+
+    # addCategory
+    #
+    # @params:
+    #   name - 分类名字
+    # @returns:
+    #   Category - 分类
+    # @errors:
+    #   not_login - 未登录
+    #   repeat_name - 重复分类名
+    addCategory(name: String!): Category
     
     # addFeed
     #
     # @params:
     #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
-    #   categoryId - 分类Id，不为空时考虑优先考虑
-    #   categoryName - 分类名字，Id为空时，创建新的分类
+    #   categoryId - 分类Id
     # @returns:
     #   Category - 只包含添加的订阅的分类
     # @errors:
     #   
-    addFeed(url: String!, categoryId: String, categoryName: String): Category
+    addFeed(url: String!, categoryId: String!): Feed
 
     editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
     editCategory(id: String!, name: String!): Boolean!

@@ -10,26 +10,38 @@ import (
 	"net/http"
 )
 
+func (r *mutationResolver) AddCategory(ctx context.Context, name string) (*graphql.Category, error) {
+	userID := r.Session.GetString("id")
+	if userID == "" {
+		return nil, errors.New("not_login")
+	}
+	category, err := r.Service.Category.AddCategory(userID, name)
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
 type feed struct {
-	Title string  `xml:"title"`
-	Subtitle string `xml:"subtitle"`
-	Entrys []entry `xml:"entry"`
+	Title    string  `xml:"title"`
+	Subtitle string  `xml:"subtitle"`
+	Entrys   []entry `xml:"entry"`
 }
 
 type entry struct {
-	Title string     `xml:"title"`
-	Link link 		 `xml:"link"`
+	Title     string `xml:"title"`
+	Link      link   `xml:"link"`
 	Published string `xml:"published"`
-	Updated string   `xml:"updated"`
-	Content string   `xml:"content"`
-	Summary string   `xml:"summary"`
+	Updated   string `xml:"updated"`
+	Content   string `xml:"content"`
+	Summary   string `xml:"summary"`
 }
 
 type link struct {
 	Href string `xml:"href,attr"`
 }
 
-func (r *mutationResolver) AddFeed(ctx context.Context, url string, categoryId *string, categoryName *string) (*graphql.Category, error) {
+func (r *mutationResolver) AddFeed(ctx context.Context, url string, categoryId string) (*graphql.Feed, error) {
 	if r.Session.Get("id") == nil {
 		return nil, errors.New("not_login")
 	}

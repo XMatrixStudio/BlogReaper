@@ -24,7 +24,7 @@ type Error struct {
 func login(t *testing.T, handler http.Handler, userInfo service.TestLoginParameters, state string) Response {
 	bytes, err := xml.Marshal(userInfo)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	code := strings.Replace(string(bytes), `"`, `\\"`, -1)
 	query := `
@@ -53,28 +53,75 @@ func TestMutationResolver_Login_ErrorState(t *testing.T) {
 	handler := app.TestApp()
 	res := login(t, handler, loginUser1, "1234567890")
 	if len(res.Errors) == 0 || res.Errors[0].Message != "error_state" {
-		t.Errorf("Error expected %s, actual %s", "error_state", res.Errors[0].Message)
+		t.Fatalf("Error expected %s, actual %s", "error_state", res.Errors[0].Message)
 	}
 }
 
 func TestMutationResolver_Login_AddUser(t *testing.T) {
 	handler := app.TestApp()
-	res := login(t, handler, loginUser1, "")
+	res := login(t, handler, loginUser3, "")
 	if len(res.Errors) != 0 {
-		t.Error(res.Errors)
+		t.Fatal(res.Errors)
 	}
 	data := res.Data.(map[string]interface{})["login"].(map[string]interface{})
-	if data["email"] != loginUser1.Email {
-		t.Errorf("Email expected %s, actual %s", loginUser1.Email, data["email"])
-	} else if data["info"].(map[string]interface{})["name"] != loginUser1.Name {
-		t.Errorf("Name expected %s, actual %s", loginUser1.Name, data["info"].(map[string]interface{})["name"])
+	if data["email"] != loginUser3.Email {
+		t.Fatalf("Email expected %s, actual %s", loginUser3.Email, data["email"])
+	} else if data["info"].(map[string]interface{})["name"] != loginUser3.Name {
+		t.Fatalf("Name expected %s, actual %s", loginUser3.Name, data["info"].(map[string]interface{})["name"])
 	}
 }
 
 func TestMutationResolver_Login_SetToken(t *testing.T) {
-	app.TestApp()
+	handler := app.TestApp()
+	res := login(t, handler, loginUser1, "")
+	if len(res.Errors) != 0 {
+		t.Fatal(res.Errors)
+	}
+	data := res.Data.(map[string]interface{})["login"].(map[string]interface{})
+	if data["email"] != loginUser1.Email {
+		t.Fatalf("Email expected %s, actual %s", loginUser1.Email, data["email"])
+	} else if data["info"].(map[string]interface{})["name"] != loginUser1.Name {
+		t.Fatalf("Name expected %s, actual %s", loginUser1.Name, data["info"].(map[string]interface{})["name"])
+	}
+	res = login(t, handler, loginUser2, "")
+	if len(res.Errors) != 0 {
+		t.Fatal(res.Errors)
+	}
+	data = res.Data.(map[string]interface{})["login"].(map[string]interface{})
+	if data["email"] != loginUser1.Email {
+		t.Fatalf("Email expected %s, actual %s", loginUser1.Email, data["email"])
+	} else if data["info"].(map[string]interface{})["name"] != loginUser1.Name {
+		t.Fatalf("Name expected %s, actual %s", loginUser1.Name, data["info"].(map[string]interface{})["name"])
+	}
+}
+
+func logout(t *testing.T, handler http.Handler) Response {
+	query := `
+mutation {
+	logout
+}`
+	query = strings.Replace(query, "\n", " ", -1)
+	query = strings.Replace(query, "\t", " ", -1)
+	req, _ := http.NewRequest("POST", "/graphql", strings.NewReader(`{"query":"`+query+`"}`))
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	res := Response{}
+	json.Unmarshal(w.Body.Bytes(), &res)
+	return res
 }
 
 func TestMutationResolver_Logout(t *testing.T) {
-	// TODO
+	handler := app.TestApp()
+	res := login(t, handler, loginUser1, "")
+	if len(res.Errors) != 0 {
+		t.Fatal(res.Errors)
+	}
+	res = logout(t, handler)
+	if len(res.Errors) != 0 {
+		t.Fatal(res.Errors)
+	}
+	data := res.Data.(map[string]interface{})["logout"].(bool)
+	if data == false {
+		t.Fatal("Logout fail")
+	}
 }

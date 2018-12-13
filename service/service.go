@@ -7,9 +7,10 @@ import (
 )
 
 type Service struct {
-	User   UserService
-	Feed   FeedService
-	Public PublicService
+	User     UserService
+	Feed     FeedService
+	Category CategoryService
+	Public   PublicService
 }
 
 func NewService() *Service {
@@ -21,6 +22,7 @@ func NewService() *Service {
 	}
 	s.User = NewUserService(s, &model.UserModel{Model: &model.Model{BucketName: "user", DB: m.DB}})
 	s.Feed = NewFeedService(s, &model.FeedModel{Model: &model.Model{BucketName: "feed", DB: m.DB}})
+	s.Category = NewCategoryService(s, &model.CategoryModel{Model: &model.Model{BucketName: "category", DB: m.DB}})
 	s.Public = NewPublicService(s, &model.PublicModel{Model: &model.Model{BucketName: "public", DB: m.DB}})
 	return s
 }

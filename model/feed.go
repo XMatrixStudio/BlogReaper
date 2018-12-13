@@ -6,17 +6,13 @@ type FeedModel struct {
 	*Model
 }
 
-type Category struct {
-	ID     bson.ObjectId `bson:"id"`     // 订阅分类的ID
-	UserID bson.ObjectId `bson:"userId"` // 订阅用户的ID
-	Name   string        `bson:"name"`   // 订阅分类的名称
-	Feeds  []Feed        `bson:"feeds"`  // 分类中的订阅源
-}
-
 type Feed struct {
-	URL      string    `bson:"url"`      // 订阅源的URL
-	Title    string    `bson:"title"`    // 订阅源的标题
-	Articles []Article `bson:"articles"` // 订阅源包括的文章
+	ID         bson.ObjectId   `bson:"id"`         // 订阅源的ID
+	UserID     bson.ObjectId   `bson:"userId"`     // 订阅用户的ID
+	URL        string          `bson:"url"`        // 订阅源的URL
+	Title      string          `bson:"title"`      // 订阅源的标题
+	Categories []bson.ObjectId `bson:"categories"` // 订阅源的分类
+	Articles   []Article       `bson:"articles"`   // 订阅源包括的文章
 }
 
 type Article struct {

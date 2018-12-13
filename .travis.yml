@@ -6,5 +6,5 @@ before_install:
   - go get github.com/mattn/goveralls
 script:
   - go build
-  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then go test -v ./... -covermode=count -coverprofile=coverage.out -coverpkg="github.com/XMatrixStudio/BlogReaper/..."; fi'
-  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then $GOPATH/bin/goveralls -v -coverprofile=coverage.out -service=travis-ci; fi'
+  - go test -v ./... -covermode=count -coverprofile=coverage.out -coverpkg="github.com/XMatrixStudio/BlogReaper/..."
+  - $GOPATH/bin/goveralls -v -coverprofile=coverage.out -service=travis-ci
