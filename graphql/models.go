@@ -21,6 +21,7 @@ type Category struct {
 }
 
 type Feed struct {
+	ID       string    `json:"id"`
 	URL      string    `json:"url"`
 	Title    string    `json:"title"`
 	Subtitle string    `json:"subtitle"`

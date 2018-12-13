@@ -1,8 +1,3 @@
-schema {
-    query: Query
-    mutation: Mutation
-}
-
 type Query {
     # user
     #
@@ -13,7 +8,25 @@ type Query {
     #   not_found - 找不到该用户
     user: User
 
-    categories: [Category!]
+    # categories
+    #
+    # @returns:
+    #   []Category - 分类
+    # @errors:
+    #   not_login - 未登录
+    categories: [Category!]!
+
+    # feeds
+    #
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   not_login - 未登录
+    feeds: [Feed!]!
+
+    # publicFeeds
+
+    # publicArticles
 }
 
 type Mutation {
@@ -23,7 +36,6 @@ type Mutation {
     #   backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
     # @returns:
     #   String! - 登录地址，可能为空
-    # @errors:
     createLoginUrl(backUrl: String!): String!
 
     # login
@@ -63,11 +75,27 @@ type Mutation {
     # @returns:
     #   Category - 只包含添加的订阅的分类
     # @errors:
-    #   
+    #   not_login - 未登录
+    #   invalid_url - 订阅源不存在
+    #   invalid_category - 分类不存在
+    #   repeat_url - 重复的订阅源
     addFeed(url: String!, categoryId: String!): Feed
 
     editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
+
+    # editCategory
+    #
+    # @params:
+    #   id - 分类Id
+    #   name - 分类的新名字
+    # @returns:
+    #   Boolean - 是否更改成功
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
+    #   same_name - 分类更改前后名字相同
     editCategory(id: String!, name: String!): Boolean!
+
     editFeed(url: String!, title: String, categoryId: String): Boolean!
     removeFeed(url: String!): Boolean!
 }
@@ -85,10 +113,11 @@ type UserInfo {
 }
 
 type Feed {
+    id: String!
     url: String!
     title: String!
     subtitle: String!
-    articles: [Article!]!
+    articles(page: Int!, numPerPage: Int!): [Article!]!
 }
 
 type Category {

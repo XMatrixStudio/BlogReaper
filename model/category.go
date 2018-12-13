@@ -21,7 +21,7 @@ func (m *CategoryModel) AddCategory(userID, name string) (category Category, err
 		if err != nil {
 			return err
 		}
-		nub, err := b.CreateBucketIfNotExists([]byte("key_name_value_id"))
+		nub, err := ub.CreateBucketIfNotExists([]byte("key_name_value_userId"))
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (m *CategoryModel) GetCategories(userID string) (categories []Category, err
 			return nil
 		}
 		return ub.ForEach(func(k, v []byte) error {
-			if string(k) != "key_name_value_id" {
+			if string(k) != "key_name_value_userId" {
 				category := Category{}
 				err = bson.Unmarshal(v, &category)
 				if err != nil {
@@ -62,4 +62,8 @@ func (m *CategoryModel) GetCategories(userID string) (categories []Category, err
 			return nil
 		})
 	})
+}
+
+func (m *CategoryModel) EditCategory(userID, categoryID, newName string) (success bool, err error) {
+	panic("not implement")
 }

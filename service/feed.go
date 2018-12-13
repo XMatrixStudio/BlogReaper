@@ -1,11 +1,12 @@
 package service
 
 import (
+	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 )
 
 type FeedService interface {
-	AddFeed(userID, url, categoryID, categoryName string)
+	AddFeed(userID, url, categoryID string) (feed graphql.Feed, err error)
 }
 
 type feedService struct {
@@ -20,6 +21,6 @@ func NewFeedService(s *Service, m *model.FeedModel) FeedService {
 	}
 }
 
-func (s *feedService) AddFeed(userID, url, categoryID, categoryName string) {
-	// TODO
+func (s *feedService) AddFeed(userID, url, categoryID string) (feed graphql.Feed, err error) {
+	panic("not implement")
 }

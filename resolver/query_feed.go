@@ -17,3 +17,7 @@ func (r *queryResolver) Categories(ctx context.Context) ([]graphql.Category, err
 	}
 	return categories, nil
 }
+
+func (r *queryResolver) Feeds(ctx context.Context) ([]graphql.Feed, error) {
+	panic("not implement")
+}
