@@ -55,11 +55,11 @@ func (r *mutationResolver) EditFeed(ctx context.Context, id string, title *strin
 	if userID == "" {
 		return false, errors.New("not_login")
 	}
-	success, err := r.Service.Category.EditFeed(userID, id, title, categoryId)
+	_, err := r.Service.Feed.EditFeed(userID, id, title, categoryId)
 	if err != nil {
 		return false, err
 	}
-	panic("not implemented")
+	return true, nil
 }
 
 func (r *mutationResolver) RemoveCategory(ctx context.Context, id string) (bool, error) {

@@ -82,18 +82,18 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 
 // 参数为nil表示不修改
 func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs []string) (success bool, err error) {
-	feed, err := s.Model.getFeedById(userID, feedID)
+	feed, err := s.Model.GetFeedByID(userID, feedID)
 	if err != nil {
 		return false, err
 	}
 	if title == nil {
-		title = feed.Title
+		title = &feed.Title
 	}
-	if categoryIDs == nil {
-		categoryIDs = feed.categoryIDs
+	_, err = s.Model.EditFeed(userID, feedID, *title, categoryIDs)
+	if err != nil {
+		return false, err
 	}
-	url = feed.URL
-	return s.Model.EditFeed(userID, url, title, categoryIDs)
+	return true, nil
 }
 
 func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error) {
