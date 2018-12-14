@@ -12,7 +12,9 @@ import (
 
 type PublicService interface {
 	GetModel() *model.PublicModel
-	GetPublicFeed(url string) (feed graphql.Feed, err error)
+	GetPublicFeedByID(id string) (feed graphql.Feed, err error)
+	GetPublicFeedByURL(url string) (feed graphql.Feed, err error)
+	GetPublicFeedByKeyword(keyword string) (feeds []graphql.Feed, err error)
 }
 
 type publicService struct {
@@ -32,19 +34,57 @@ func (s *publicService) GetModel() *model.PublicModel {
 }
 
 // 从数据库中获取PublicFeed
-func (s *publicService) GetPublicFeed(url string) (feed graphql.Feed, err error) {
+func (s *publicService) GetPublicFeedByID(id string) (feed graphql.Feed, err error) {
+	publicFeed, err := s.Model.GetPublicFeedByID(id)
+	if err != nil {
+		return
+	}
+	feed = graphql.Feed{
+		ID:       "",
+		PublicID: publicFeed.ID.Hex(),
+		URL:      publicFeed.URL,
+		Title:    publicFeed.Title,
+		Subtitle: publicFeed.Subtitle,
+		Follow:   int(publicFeed.Follow),
+		Articles: nil,
+	}
+	for _, v := range publicFeed.Articles {
+		publicArticle, err := s.Model.GetPublicArticleByURL(v)
+		if err != nil {
+			return feed, err
+		}
+		feed.Articles = append(feed.Articles, graphql.Article{
+			URL:        publicArticle.URL,
+			Title:      publicArticle.Title,
+			Published:  publicArticle.Published,
+			Updated:    publicArticle.Updated,
+			Content:    publicArticle.Content,
+			Summary:    publicArticle.Summary,
+			Categories: publicArticle.Categories,
+			Read:       false,
+			Later:      false,
+			FeedID:     "",
+		})
+	}
+	return
+}
+
+func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err error) {
 	publicFeed, err := s.Model.GetPublicFeedByURL(url)
 	if err != nil && err.Error() != "not_found" {
 		return
 	}
-	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-publicFeed.UpdateDate > 60*60*12 {
-		publicFeed, err = s.UpdatePublicFeed(url)
-		if err != nil {
-			return
-		}
+	if err != nil && err.Error() == "not_found" {
+		publicFeed, err = s.UpdatePublicFeed("", url)
+	} else if time.Now().Unix()-publicFeed.UpdateDate > 60*60*12 {
+		publicFeed, err = s.UpdatePublicFeed(publicFeed.ID.Hex(), url)
+	}
+	if err != nil {
+		return
 	}
 	feed = graphql.Feed{
 		ID:       "",
+		PublicID: publicFeed.ID.Hex(),
 		URL:      publicFeed.URL,
 		Title:    publicFeed.Title,
 		Subtitle: publicFeed.Subtitle,
@@ -68,6 +108,44 @@ func (s *publicService) GetPublicFeed(url string) (feed graphql.Feed, err error)
 			Later:      false,
 			FeedID:     "",
 		})
+	}
+	return
+}
+
+func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.Feed, err error) {
+	publicFeeds, err := s.Model.GetPublicFeedsByKeyword(keyword)
+	if err != nil {
+		return
+	}
+	for _, v := range publicFeeds {
+		feed := graphql.Feed{
+			ID:       "",
+			PublicID: v.ID.Hex(),
+			URL:      v.URL,
+			Title:    v.Title,
+			Subtitle: v.Subtitle,
+			Follow:   int(v.Follow),
+			Articles: []graphql.Article{},
+		}
+		for _, v := range v.Articles {
+			publicArticle, err := s.Model.GetPublicArticleByURL(v)
+			if err != nil {
+				return feeds, err
+			}
+			feed.Articles = append(feed.Articles, graphql.Article{
+				URL:        publicArticle.URL,
+				Title:      publicArticle.Title,
+				Published:  publicArticle.Published,
+				Updated:    publicArticle.Updated,
+				Content:    publicArticle.Content,
+				Summary:    publicArticle.Summary,
+				Categories: publicArticle.Categories,
+				Read:       false,
+				Later:      false,
+				FeedID:     "",
+			})
+		}
+		feeds = append(feeds, feed)
 	}
 	return
 }
@@ -102,7 +180,7 @@ type AtomCategory struct {
 }
 
 // 从订阅源拉取数据，更新PublicFeed
-func (s *publicService) UpdatePublicFeed(url string) (publicFeed model.PublicFeed, err error) {
+func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return
@@ -144,10 +222,10 @@ func (s *publicService) UpdatePublicFeed(url string) (publicFeed model.PublicFee
 	if err != nil {
 		return
 	}
-	err = s.Model.AddOrUpdatePublicFeed(url, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
-	if err != nil {
-		return
+	if id == "" {
+		publicFeed, err = s.Model.AddPublicFeed(url, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
+	} else {
+		publicFeed, err = s.Model.UpdatePublicFeed(id, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	}
-	publicFeed, err = s.Model.GetPublicFeedByURL(url)
 	return
 }

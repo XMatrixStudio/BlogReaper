@@ -18,12 +18,12 @@ func (r *mutationResolver) AddCategory(ctx context.Context, name string) (*graph
 	return &category, nil
 }
 
-func (r *mutationResolver) AddFeed(ctx context.Context, url string, categoryId string) (*graphql.Feed, error) {
+func (r *mutationResolver) AddFeed(ctx context.Context, id string, categoryId string) (*graphql.Feed, error) {
 	userID := r.Session.GetString("id")
 	if userID == "" {
 		return nil, errors.New("not_login")
 	}
-	feed, err := r.Service.Feed.AddFeed(userID, url, categoryId)
+	feed, err := r.Service.Feed.AddFeed(userID, id, categoryId)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,8 @@ func (r *mutationResolver) RemoveCategory(ctx context.Context, id string) (bool,
 }
 
 func (r *mutationResolver) RemoveFeed(ctx context.Context, url string) (bool, error) {
-	if r.Session.Get("id") == nil {
+	userID := r.Session.GetString("id")
+	if userID == "" {
 		return false, errors.New("not_login")
 	}
 	panic("not implemented")

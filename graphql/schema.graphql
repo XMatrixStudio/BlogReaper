@@ -13,21 +13,13 @@ type Query {
     #   not_found - 找不到该用户
     user: User
 
-    # categories
-    #
-    # @returns:
-    #   []Category - 分类
-    # @errors:
-    #   not_login - 未登录
-    categories: [Category!]!
-
     # feeds
     #
     # @returns:
     #   []Feed - 订阅源
     # @errors:
-    #   not_login - 未登录
-    feeds: [Feed!]!
+    #   empty_keyword - 关键词为空
+    feeds(keyword: String!): [Feed!]!
 
     # articles
     #
@@ -87,6 +79,16 @@ type Mutation {
     #   Boolean - 是否注销成功
     logout: Boolean!
 
+    # addPublicFeedOrNot
+    #
+    # @params:
+    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
+    # @returns:
+    #   Feed - 订阅源
+    # @errors:
+    #   invalid_url - 订阅源不存在
+    addPublicFeedOrNot(url: String!): Feed
+
     # addCategory
     #
     # @params:
@@ -101,16 +103,16 @@ type Mutation {
     # addFeed
     #
     # @params:
-    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
+    #   id - 订阅源Id
     #   categoryId - 分类Id
     # @returns:
-    #   Category - 只包含添加的订阅的分类
+    #   Feed - 订阅源
     # @errors:
     #   not_login - 未登录
-    #   invalid_url - 订阅源不存在
     #   invalid_category - 分类不存在
-    #   repeat_url - 重复的订阅源
-    addFeed(url: String!, categoryId: String!): Feed
+    #   invalid_id - 订阅源不存在
+    #   repeat_feed - 重复的订阅源
+    addFeed(id: String!, categoryId: String!): Feed
 
     editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
 
@@ -135,12 +137,26 @@ type Mutation {
     editFeed(id: String!, title: String, categoryId: [String!]): Boolean!
 
     removeCategory(id: String!): Boolean!
-    removeFeed(url: String!): Boolean!
+
+    # removeFeed
+    # 
+    # @params:
+    # @returns:
+    # @errors:
+    removeFeed(id: String!): Boolean!
 }
 
 type User {
     email: String!
     info: UserInfo!
+
+    # categories
+    #
+    # @returns:
+    #   []Category - 分类
+    # @errors:
+    #   not_login - 未登录
+    categories: [Category!]!
 }
 
 type UserInfo {
@@ -152,6 +168,7 @@ type UserInfo {
 
 type Feed {
     id: String!
+    publicId: String!
     url: String!
     title: String!
     subtitle: String!

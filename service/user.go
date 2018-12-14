@@ -87,6 +87,10 @@ func (s *userService) GetUserInfo(id string) (user graphql.User, err error) {
 	if err != nil {
 		return graphql.User{}, errors.New("not_found")
 	}
+	categories, err := s.Service.Category.GetCategories(id)
+	if err != nil {
+		return
+	}
 	user = graphql.User{
 		Email: modelUser.Email,
 		Info: graphql.UserInfo{
@@ -95,6 +99,7 @@ func (s *userService) GetUserInfo(id string) (user graphql.User, err error) {
 			Bio:    modelUser.Info.Bio,
 			Gender: modelUser.Info.Gender,
 		},
+		Categories: categories,
 	}
 	return
 }
