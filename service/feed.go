@@ -79,5 +79,16 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 
 // 参数为nil表示不修改
 func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs []string) (success bool, err error) {
-	panic("not implement")
+	feed, err := s.Model.getFeedById(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	if title == nil {
+		title = feed.Title
+	}
+	if categoryIDs == nil {
+		categoryIDs = feed.categoryIDs
+	}
+	url = feed.URL
+	return s.Model.EditFeed(userID, url, title, categoryIDs)
 }
