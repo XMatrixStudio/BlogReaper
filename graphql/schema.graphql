@@ -133,7 +133,11 @@ type Mutation {
     # editFeed
     #
     # @params:
+    #   id - 订阅源的id
+    #   title - 更新的标题
+    #   categoryId - 传入的分类的id
     # @returns:
+    #   Boolean - 是否修改成功
     # @errors:
     editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
 
