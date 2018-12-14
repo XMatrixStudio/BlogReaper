@@ -12,6 +12,14 @@ model:
   filename: graphql/models.go
   package: graphql
 models:
+  User:
+    fields:
+      categories:
+        resolver: true
+  Category:
+    fields:
+      feeds:
+        resolver: true
   Feed:
     fields:
       articles:

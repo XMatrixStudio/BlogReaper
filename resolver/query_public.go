@@ -13,3 +13,11 @@ func (r *queryResolver) Feeds(ctx context.Context, keyword string) ([]graphql.Fe
 	feeds, err := r.Service.Public.GetPublicFeedByKeyword(keyword)
 	return feeds, err
 }
+
+func (r *queryResolver) PopularArticles(ctx context.Context, page int, numPerPage int) ([]graphql.Article, error) {
+	panic("not implemented")
+}
+
+func (r *queryResolver) PopularFeeds(ctx context.Context, page int, numPerPage int) ([]graphql.Feed, error) {
+	panic("not implemented")
+}

@@ -30,12 +30,19 @@ func (r *mutationResolver) AddFeed(ctx context.Context, id string, categoryId st
 	return &feed, nil
 }
 
-func (r *mutationResolver) EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error) {
+func (r *mutationResolver) EditArticle(ctx context.Context, url, feedID string, read *bool, later *bool) (bool, error) {
 	userID := r.Session.GetString("id")
 	if userID == "" {
 		return false, errors.New("not_login")
 	}
-	panic("not implemented")
+	if read == nil && later == nil {
+		return false, errors.New("invalid_params")
+	}
+	success, err := r.Service.Feed.EditArticle(userID, feedID, url, read, later)
+	if err != nil {
+		return false, err
+	}
+	return success, nil
 }
 
 func (r *mutationResolver) EditCategory(ctx context.Context, id string, name string) (bool, error) {

@@ -21,17 +21,6 @@ type Query {
     #   empty_keyword - 关键词为空
     feeds(keyword: String!): [Feed!]!
 
-    # articles
-    #
-    # @params
-    #   later - 筛选稍后阅读，可为nil
-    #   today - 筛选今日文章，可为nil
-    # @returns
-    #   []Article - 筛选或未筛选的文章
-    # @errors:
-    #   not_login - 未登录
-    articles(later: Boolean, today: Boolean): [Article!]!
-
     # popularFeeds
     #
     # @params:
@@ -114,7 +103,20 @@ type Mutation {
     #   repeat_feed - 重复的订阅源
     addFeed(id: String!, categoryId: String!): Feed
 
-    editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
+    # editArticle
+    #
+    # @params:
+    #   url - 文章链接
+    #   feedId - 订阅源Id
+    #   read - 标记已读或未读
+    #   later - 标记稍后阅读或取消稍后阅读
+    # @returns:
+    #   Boolean - 是否成功修改文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    #   invalid_feed_or_url - 订阅源id或url非法
+    editArticle(url: String!, feedId: String!, read: Boolean, later: Boolean): Boolean!
 
     # editCategory
     #
@@ -126,7 +128,6 @@ type Mutation {
     # @errors:
     #   not_login - 未登录
     #   invalid_id - 分类不存在
-    #   same_name - 分类更改前后名字相同
     editCategory(id: String!, name: String!): Boolean!
 
     # editFeed
@@ -134,7 +135,7 @@ type Mutation {
     # @params:
     # @returns:
     # @errors:
-    editFeed(id: String!, title: String, categoryId: [String!]): Boolean!
+    editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
 
     removeCategory(id: String!): Boolean!
 
@@ -152,11 +153,16 @@ type User {
 
     # categories
     #
+    # @params:
+    #   id - 分类Id
     # @returns:
     #   []Category - 分类
     # @errors:
     #   not_login - 未登录
-    categories: [Category!]!
+    #   invalid_id - 分类不存在
+    categories(id: String): [Category!]!
+
+    laterArticles: [Article!]!
 }
 
 type UserInfo {
@@ -164,6 +170,22 @@ type UserInfo {
     avatar: String!
     bio: String!
     gender: Int!
+}
+
+type Category {
+    id: String!
+    name: String!
+
+    # feeds
+    #
+    # @params:
+    #   id - 订阅源Id
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
+    feeds(id: String): [Feed!]!
 }
 
 type Feed {
@@ -182,12 +204,6 @@ type Feed {
     # @returns:
     #   []Article - 筛选得到的文章
     articles(page: Int, numPerPage: Int): [Article!]!
-}
-
-type Category {
-    id: String!
-    name: String!
-    feeds: [Feed!]!
 }
 
 type Article {
