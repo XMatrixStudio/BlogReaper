@@ -34,7 +34,7 @@ func (m *FeedModel) AddFeed(userID, url, title, categoryID string, articlesUrl [
 		if err != nil {
 			return err
 		}
-		if uub.Get([]byte(url)) == nil {
+		if uub.Get([]byte(url)) != nil {
 			return errors.New("repeat_url")
 		}
 		var articles []Article
@@ -100,7 +100,33 @@ func (m *FeedModel) GetFeedByURL(userID, url string) (feed Feed, err error) {
 	})
 }
 
-func (m *FeedModel) EditFeed(userID, categoryID, url, title string) (feed Feed, err error) {
+func (m *FeedModel) GetFeedsByCategoryID(userID, categoryID string) (feeds []Feed, err error) {
+	return feeds, m.View(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		return ub.ForEach(func(k, v []byte) error {
+			if string(k) == "key_url_value_id" {
+				return nil
+			}
+			feed := Feed{}
+			err = bson.Unmarshal(v, &feed)
+			if err != nil {
+				return err
+			}
+			for _, cid := range feed.Categories {
+				if categoryID == cid.Hex() {
+					feeds = append(feeds, feed)
+					break
+				}
+			}
+			return nil
+		})
+	})
+}
+
+func (m *FeedModel) EditFeed(userID, url, title string, categoryIDs []string) (feed Feed, err error) {
 	panic("not implement")
 }
 

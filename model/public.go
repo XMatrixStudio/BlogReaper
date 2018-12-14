@@ -16,7 +16,7 @@ type PublicFeed struct {
 	Title      string   `bson:"title"`      // 订阅源的标题
 	Subtitle   string   `bson:"subtitle"`   // 订阅源的子标题
 	Articles   []string `bson:"articles"`   // 订阅源包括的文章URL
-	Star       int64    `bson:"star"`       // 订阅数量
+	Follow     int64    `bson:"follow"`     // 订阅数量
 	UpdateDate int64    `bson:"updateDate"` // 更新时间，如果超过12小时就更新，或强制更新
 }
 
@@ -45,7 +45,7 @@ func (m *PublicModel) AddOrUpdatePublicFeed(url, title, subtitle string, article
 				Title:      title,
 				Subtitle:   subtitle,
 				Articles:   articles,
-				Star:       0,
+				Follow:     0,
 				UpdateDate: time.Now().Unix(),
 			})
 			if err != nil {
@@ -152,5 +152,29 @@ func (m *PublicModel) GetPublicArticleByURL(url string) (article PublicArticle, 
 			return errors.New("not_found")
 		}
 		return bson.Unmarshal(bytes, &article)
+	})
+}
+
+func (m *PublicModel) IncreasePublicFeedStar(url string) (err error) {
+	return m.Update(func(b *bolt.Bucket) error {
+		fb, err := b.CreateBucketIfNotExists([]byte("feed"))
+		if err != nil {
+			return err
+		}
+		bytes := fb.Get([]byte(url))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		publicFeed := PublicFeed{}
+		err = bson.Unmarshal(bytes, &publicFeed)
+		if err != nil {
+			return err
+		}
+		publicFeed.Follow++
+		bytes, err = bson.Marshal(&publicFeed)
+		if err != nil {
+			return err
+		}
+		return fb.Put([]byte(url), bytes)
 	})
 }

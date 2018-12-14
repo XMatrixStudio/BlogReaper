@@ -26,6 +26,7 @@ type Feed struct {
 	URL      string    `json:"url"`
 	Title    string    `json:"title"`
 	Subtitle string    `json:"subtitle"`
+	Follow   int       `json:"follow"`
 	Articles []Article `json:"articles"`
 }
 

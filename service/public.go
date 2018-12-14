@@ -11,6 +11,7 @@ import (
 )
 
 type PublicService interface {
+	GetModel() *model.PublicModel
 	GetPublicFeed(url string) (feed graphql.Feed, err error)
 }
 
@@ -24,6 +25,10 @@ func NewPublicService(s *Service, m *model.PublicModel) PublicService {
 		Model:   m,
 		Service: s,
 	}
+}
+
+func (s *publicService) GetModel() *model.PublicModel {
+	return s.Model
 }
 
 // 从数据库中获取PublicFeed
@@ -43,6 +48,7 @@ func (s *publicService) GetPublicFeed(url string) (feed graphql.Feed, err error)
 		URL:      publicFeed.URL,
 		Title:    publicFeed.Title,
 		Subtitle: publicFeed.Subtitle,
+		Follow:   int(publicFeed.Follow),
 		Articles: []graphql.Article{},
 	}
 	for _, v := range publicFeed.Articles {

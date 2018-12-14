@@ -64,7 +64,8 @@ type ComplexityRoot struct {
 		Url      func(childComplexity int) int
 		Title    func(childComplexity int) int
 		Subtitle func(childComplexity int) int
-		Articles func(childComplexity int, page int, numPerPage int) int
+		Follow   func(childComplexity int) int
+		Articles func(childComplexity int, page *int, numPerPage *int) int
 	}
 
 	Mutation struct {
@@ -75,7 +76,7 @@ type ComplexityRoot struct {
 		AddFeed        func(childComplexity int, url string, categoryId string) int
 		EditArticle    func(childComplexity int, url string, read *bool, later *bool) int
 		EditCategory   func(childComplexity int, id string, name string) int
-		EditFeed       func(childComplexity int, url string, title *string, categoryId *string) int
+		EditFeed       func(childComplexity int, id string, title *string, categoryId []string) int
 		RemoveCategory func(childComplexity int, id string) int
 		RemoveFeed     func(childComplexity int, url string) int
 	}
@@ -103,7 +104,7 @@ type ComplexityRoot struct {
 }
 
 type FeedResolver interface {
-	Articles(ctx context.Context, obj *Feed, page int, numPerPage int) ([]Article, error)
+	Articles(ctx context.Context, obj *Feed, page *int, numPerPage *int) ([]Article, error)
 }
 type MutationResolver interface {
 	CreateLoginURL(ctx context.Context, backUrl string) (string, error)
@@ -113,7 +114,7 @@ type MutationResolver interface {
 	AddFeed(ctx context.Context, url string, categoryId string) (*Feed, error)
 	EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error)
 	EditCategory(ctx context.Context, id string, name string) (bool, error)
-	EditFeed(ctx context.Context, url string, title *string, categoryId *string) (bool, error)
+	EditFeed(ctx context.Context, id string, title *string, categoryId []string) (bool, error)
 	RemoveCategory(ctx context.Context, id string) (bool, error)
 	RemoveFeed(ctx context.Context, url string) (bool, error)
 }
@@ -128,19 +129,29 @@ type QueryResolver interface {
 
 func field_Feed_articles_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
-	var arg0 int
+	var arg0 *int
 	if tmp, ok := rawArgs["page"]; ok {
 		var err error
-		arg0, err = graphql.UnmarshalInt(tmp)
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg0 = &ptr1
+		}
+
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["page"] = arg0
-	var arg1 int
+	var arg1 *int
 	if tmp, ok := rawArgs["numPerPage"]; ok {
 		var err error
-		arg1, err = graphql.UnmarshalInt(tmp)
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg1 = &ptr1
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -298,14 +309,14 @@ func field_Mutation_editCategory_args(rawArgs map[string]interface{}) (map[strin
 func field_Mutation_editFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["url"]; ok {
+	if tmp, ok := rawArgs["id"]; ok {
 		var err error
 		arg0, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["url"] = arg0
+	args["id"] = arg0
 	var arg1 *string
 	if tmp, ok := rawArgs["title"]; ok {
 		var err error
@@ -320,15 +331,21 @@ func field_Mutation_editFeed_args(rawArgs map[string]interface{}) (map[string]in
 		}
 	}
 	args["title"] = arg1
-	var arg2 *string
+	var arg2 []string
 	if tmp, ok := rawArgs["categoryId"]; ok {
 		var err error
-		var ptr1 string
+		var rawIf1 []interface{}
 		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg2 = &ptr1
+			if tmp1, ok := tmp.([]interface{}); ok {
+				rawIf1 = tmp1
+			} else {
+				rawIf1 = []interface{}{tmp}
+			}
 		}
-
+		arg2 = make([]string, len(rawIf1))
+		for idx1 := range rawIf1 {
+			arg2[idx1], err = graphql.UnmarshalString(rawIf1[idx1])
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -627,6 +644,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Feed.Subtitle(childComplexity), true
 
+	case "Feed.follow":
+		if e.complexity.Feed.Follow == nil {
+			break
+		}
+
+		return e.complexity.Feed.Follow(childComplexity), true
+
 	case "Feed.articles":
 		if e.complexity.Feed.Articles == nil {
 			break
@@ -637,7 +661,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Feed.Articles(childComplexity, args["page"].(int), args["numPerPage"].(int)), true
+		return e.complexity.Feed.Articles(childComplexity, args["page"].(*int), args["numPerPage"].(*int)), true
 
 	case "Mutation.createLoginUrl":
 		if e.complexity.Mutation.CreateLoginUrl == nil {
@@ -728,7 +752,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EditFeed(childComplexity, args["url"].(string), args["title"].(*string), args["categoryId"].(*string)), true
+		return e.complexity.Mutation.EditFeed(childComplexity, args["id"].(string), args["title"].(*string), args["categoryId"].([]string)), true
 
 	case "Mutation.removeCategory":
 		if e.complexity.Mutation.RemoveCategory == nil {
@@ -1442,6 +1466,11 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "follow":
+			out.Values[i] = ec._Feed_follow(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "articles":
 			wg.Add(1)
 			go func(i int, field graphql.CollectedField) {
@@ -1571,6 +1600,33 @@ func (ec *executionContext) _Feed_subtitle(ctx context.Context, field graphql.Co
 }
 
 // nolint: vetshadow
+func (ec *executionContext) _Feed_follow(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Follow, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalInt(res)
+}
+
+// nolint: vetshadow
 func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
@@ -1589,7 +1645,7 @@ func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.Co
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Feed().Articles(rctx, obj, args["page"].(int), args["numPerPage"].(int))
+		return ec.resolvers.Feed().Articles(rctx, obj, args["page"].(*int), args["numPerPage"].(*int))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1956,7 +2012,7 @@ func (ec *executionContext) _Mutation_editFeed(ctx context.Context, field graphq
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EditFeed(rctx, args["url"].(string), args["title"].(*string), args["categoryId"].(*string))
+		return ec.resolvers.Mutation().EditFeed(rctx, args["id"].(string), args["title"].(*string), args["categoryId"].([]string))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -4379,7 +4435,13 @@ type Mutation {
     #   same_name - 分类更改前后名字相同
     editCategory(id: String!, name: String!): Boolean!
 
-    editFeed(url: String!, title: String, categoryId: String): Boolean!
+    # editFeed
+    #
+    # @params:
+    # @returns:
+    # @errors:
+    editFeed(id: String!, title: String, categoryId: [String!]): Boolean!
+
     removeCategory(id: String!): Boolean!
     removeFeed(url: String!): Boolean!
 }
@@ -4401,6 +4463,7 @@ type Feed {
     url: String!
     title: String!
     subtitle: String!
+    follow: Int!
 
     # articles
     #
@@ -4409,7 +4472,7 @@ type Feed {
     #   numPerPage - 每页文章数
     # @returns:
     #   []Article - 筛选得到的文章
-    articles(page: Int!, numPerPage: Int!): [Article!]!
+    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Category {

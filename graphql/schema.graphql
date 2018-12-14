@@ -127,7 +127,13 @@ type Mutation {
     #   same_name - 分类更改前后名字相同
     editCategory(id: String!, name: String!): Boolean!
 
-    editFeed(url: String!, title: String, categoryId: String): Boolean!
+    # editFeed
+    #
+    # @params:
+    # @returns:
+    # @errors:
+    editFeed(id: String!, title: String, categoryId: [String!]): Boolean!
+
     removeCategory(id: String!): Boolean!
     removeFeed(url: String!): Boolean!
 }
@@ -149,6 +155,7 @@ type Feed {
     url: String!
     title: String!
     subtitle: String!
+    follow: Int!
 
     # articles
     #
@@ -157,7 +164,7 @@ type Feed {
     #   numPerPage - 每页文章数
     # @returns:
     #   []Article - 筛选得到的文章
-    articles(page: Int!, numPerPage: Int!): [Article!]!
+    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Category {

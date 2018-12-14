@@ -48,11 +48,14 @@ func (s *categoryService) GetCategories(userID string) (categories []graphql.Cat
 		return categories, err
 	}
 	for _, c := range cs {
-		// TODO Feeds
+		feeds, err := s.Service.Feed.GetFeedsByCategoryID(userID, c.ID.Hex())
+		if err != nil && err.Error() == "not_found" {
+			feeds = nil
+		}
 		categories = append(categories, graphql.Category{
 			ID:    c.ID.Hex(),
 			Name:  c.Name,
-			Feeds: nil,
+			Feeds: feeds,
 		})
 	}
 	return

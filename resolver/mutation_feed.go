@@ -50,8 +50,9 @@ func (r *mutationResolver) EditCategory(ctx context.Context, id string, name str
 	return success, nil
 }
 
-func (r *mutationResolver) EditFeed(ctx context.Context, url string, title *string, categoryId *string) (bool, error) {
-	if r.Session.Get("id") == nil {
+func (r *mutationResolver) EditFeed(ctx context.Context, id string, title *string, categoryId []string) (bool, error) {
+	userID := r.Session.GetString("id")
+	if userID == "" {
 		return false, errors.New("not_login")
 	}
 	panic("not implemented")

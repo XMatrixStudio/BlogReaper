@@ -23,7 +23,11 @@ func (r *queryResolver) Categories(ctx context.Context) ([]graphql.Category, err
 }
 
 func (r *queryResolver) Feeds(ctx context.Context) ([]graphql.Feed, error) {
-	panic("not implement")
+	userID := r.Session.GetString("id")
+	if userID == "" {
+		return nil, errors.New("not_login")
+	}
+	panic("not implemented")
 }
 
 func (r *queryResolver) PopularArticles(ctx context.Context, page int, numPerPage int) ([]graphql.Article, error) {
