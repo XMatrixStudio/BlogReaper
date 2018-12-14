@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
+	"github.com/kataras/iris/core/errors"
 )
 
 type FeedService interface {
@@ -22,5 +23,9 @@ func NewFeedService(s *Service, m *model.FeedModel) FeedService {
 }
 
 func (s *feedService) AddFeed(userID, url, categoryID string) (feed graphql.Feed, err error) {
-	panic("not implement")
+	_, err = s.Service.Category.GetModel().GetCategoryById(userID, categoryID)
+	if err != nil {
+		return feed, errors.New("invalid_id")
+	}
+	return
 }

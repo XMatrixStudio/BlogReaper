@@ -1,9 +1,9 @@
 package model
 
 import (
+	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/kataras/iris/core/errors"
 )
 
 type CategoryModel struct {
@@ -36,11 +36,25 @@ func (m *CategoryModel) AddCategory(userID, name string) (category Category, err
 		if err != nil {
 			return err
 		}
-		err = ub.Put([]byte(category.ID), bytes)
+		err = ub.Put([]byte(category.ID.Hex()), bytes)
 		if err != nil {
 			return err
 		}
-		return nub.Put([]byte(name), []byte(category.ID))
+		return nub.Put([]byte(name), []byte(category.ID.Hex()))
+	})
+}
+
+func (m *CategoryModel) GetCategoryById(userID, categoryID string) (category Category, err error) {
+	return category, m.View(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		bytes := ub.Get([]byte(categoryID))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		return bson.Unmarshal(bytes, &category)
 	})
 }
 
@@ -65,5 +79,9 @@ func (m *CategoryModel) GetCategories(userID string) (categories []Category, err
 }
 
 func (m *CategoryModel) EditCategory(userID, categoryID, newName string) (success bool, err error) {
+	panic("not implement")
+}
+
+func (m *CategoryModel) RemoveCategory(userID, categoryID string) (success bool, err error) {
 	panic("not implement")
 }

@@ -12,6 +12,7 @@ type Article struct {
 	Categories []string `json:"categories"`
 	Read       bool     `json:"read"`
 	Later      bool     `json:"later"`
+	FeedID     string   `json:"feedId"`
 }
 
 type Category struct {

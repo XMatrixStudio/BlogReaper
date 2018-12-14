@@ -6,6 +6,10 @@ import (
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 )
 
+func (r *queryResolver) Articles(ctx context.Context, later *bool, today *bool) ([]graphql.Article, error) {
+	panic("not implemented")
+}
+
 func (r *queryResolver) Categories(ctx context.Context) ([]graphql.Category, error) {
 	userID := r.Session.GetString("id")
 	if userID == "" {
@@ -20,4 +24,12 @@ func (r *queryResolver) Categories(ctx context.Context) ([]graphql.Category, err
 
 func (r *queryResolver) Feeds(ctx context.Context) ([]graphql.Feed, error) {
 	panic("not implement")
+}
+
+func (r *queryResolver) PopularArticles(ctx context.Context, page int, numPerPage int) ([]graphql.Article, error) {
+	panic("not implemented")
+}
+
+func (r *queryResolver) PopularFeeds(ctx context.Context, page int, numPerPage int) ([]graphql.Feed, error) {
+	panic("not implemented")
 }
