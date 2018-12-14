@@ -12,6 +12,7 @@ type FeedModel struct {
 
 type Feed struct {
 	ID         bson.ObjectId   `bson:"id"`         // 订阅源的ID
+	PublicID   bson.ObjectId   `bson:"publicId"`   // 订阅源的公共ID
 	URL        string          `bson:"url"`        // 订阅源的URL
 	Title      string          `bson:"title"`      // 订阅源的标题
 	Categories []bson.ObjectId `bson:"categories"` // 订阅源的分类
@@ -24,17 +25,17 @@ type Article struct {
 	Later bool   `bson:"later"`
 }
 
-func (m *FeedModel) AddFeed(userID, url, title, categoryID string, articlesUrl []string) (feed Feed, err error) {
+func (m *FeedModel) AddFeed(userID, publicID, url, title, categoryID string, articlesUrl []string) (feed Feed, err error) {
 	return feed, m.Update(func(b *bolt.Bucket) error {
 		ub, err := b.CreateBucketIfNotExists([]byte(userID))
 		if err != nil {
 			return err
 		}
-		uub, err := ub.CreateBucketIfNotExists([]byte("key_url_value_id"))
+		pub, err := ub.CreateBucketIfNotExists([]byte("key_pid_value_id"))
 		if err != nil {
 			return err
 		}
-		if uub.Get([]byte(url)) != nil {
+		if pub.Get([]byte(url)) != nil {
 			return errors.New("repeat_url")
 		}
 		var articles []Article
@@ -47,6 +48,7 @@ func (m *FeedModel) AddFeed(userID, url, title, categoryID string, articlesUrl [
 		}
 		feed = Feed{
 			ID:         bson.NewObjectId(),
+			PublicID:   bson.ObjectIdHex(publicID),
 			URL:        url,
 			Title:      title,
 			Categories: []bson.ObjectId{bson.ObjectIdHex(categoryID)},
@@ -56,11 +58,11 @@ func (m *FeedModel) AddFeed(userID, url, title, categoryID string, articlesUrl [
 		if err != nil {
 			return err
 		}
-		err = ub.Put([]byte(feed.ID), bytes)
+		err = ub.Put([]byte(feed.ID.Hex()), bytes)
 		if err != nil {
 			return err
 		}
-		return uub.Put([]byte(feed.URL), []byte(feed.URL))
+		return pub.Put([]byte(publicID), []byte(feed.ID.Hex()))
 	})
 }
 
@@ -78,17 +80,17 @@ func (m *FeedModel) GetFeedByID(userID, feedID string) (feed Feed, err error) {
 	})
 }
 
-func (m *FeedModel) GetFeedByURL(userID, url string) (feed Feed, err error) {
+func (m *FeedModel) GetFeedByPublicID(userID, publicID string) (feed Feed, err error) {
 	return feed, m.View(func(b *bolt.Bucket) error {
 		ub := b.Bucket([]byte(userID))
 		if ub == nil {
 			return errors.New("not_found")
 		}
-		uub := ub.Bucket([]byte("key_url_value_id"))
-		if uub == nil {
+		pub := ub.Bucket([]byte("key_pid_value_id"))
+		if pub == nil {
 			return errors.New("not_found")
 		}
-		bytes := uub.Get([]byte(url))
+		bytes := pub.Get([]byte(publicID))
 		if bytes == nil {
 			return errors.New("not_found")
 		}
@@ -107,7 +109,7 @@ func (m *FeedModel) GetFeedsByCategoryID(userID, categoryID string) (feeds []Fee
 			return errors.New("not_found")
 		}
 		return ub.ForEach(func(k, v []byte) error {
-			if string(k) == "key_url_value_id" {
+			if string(k) == "key_pid_value_id" {
 				return nil
 			}
 			feed := Feed{}
@@ -126,10 +128,14 @@ func (m *FeedModel) GetFeedsByCategoryID(userID, categoryID string) (feeds []Fee
 	})
 }
 
-func (m *FeedModel) EditFeed(userID, url, title string, categoryIDs []string) (feed Feed, err error) {
+func (m *FeedModel) EditFeed(userID, feedID, title string, categoryIDs []string) (feed Feed, err error) {
 	panic("not implement")
 }
 
 func (m *FeedModel) EditArticle(userID, categoryID, url, articleURL string, read, later bool) (err error) {
+	panic("not implement")
+}
+
+func (m *FeedModel) RemoveFeed(userID, feedID string) (err error) {
 	panic("not implement")
 }

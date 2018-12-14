@@ -8,8 +8,10 @@ import (
 
 type FeedService interface {
 	GetModel() *model.FeedModel
-	AddFeed(userID, url, categoryID string) (feed graphql.Feed, err error)
+	AddFeed(userID, id, categoryID string) (feed graphql.Feed, err error)
 	GetFeedsByCategoryID(userID, categoryID string) (feeds []graphql.Feed, err error)
+	EditFeed(userID, feedID string, title *string, categoryIDs []string) (success bool, err error)
+	RemoveFeed(userID, feedID string) (success bool, err error)
 }
 
 type feedService struct {
@@ -28,30 +30,30 @@ func (s *feedService) GetModel() *model.FeedModel {
 	return s.Model
 }
 
-func (s *feedService) AddFeed(userID, url, categoryID string) (feed graphql.Feed, err error) {
+func (s *feedService) AddFeed(userID, id, categoryID string) (feed graphql.Feed, err error) {
 	_, err = s.Service.Category.GetModel().GetCategoryById(userID, categoryID)
 	if err != nil {
-		return feed, errors.New("invalid_id")
+		return feed, errors.New("invalid_category")
 	}
-	feed, err = s.Service.Public.GetPublicFeed(url)
+	feed, err = s.Service.Public.GetPublicFeedByID(id)
 	if err != nil {
-		return feed, errors.New("invalid_url")
+		return feed, errors.New("invalid_id")
 	}
 	var articlesUrl []string
 	for _, v := range feed.Articles {
 		articlesUrl = append(articlesUrl, v.URL)
 	}
-	_, err = s.Model.GetFeedByURL(userID, url)
+	_, err = s.Model.GetFeedByPublicID(userID, id)
 	if err == nil || err.Error() != "not_found" {
-		return feed, errors.New("repeat_url")
+		return feed, errors.New("repeat_feed")
 	}
-	privateFeed, err := s.Model.AddFeed(userID, url, feed.Title, categoryID, articlesUrl)
+	privateFeed, err := s.Model.AddFeed(userID, id, feed.URL, feed.Title, categoryID, articlesUrl)
 	if err != nil {
 		return
 	}
 	feed.ID = privateFeed.ID.Hex()
 	feed.Title = privateFeed.Title
-	err = s.Service.Public.GetModel().IncreasePublicFeedStar(url)
+	err = s.Service.Public.GetModel().IncreasePublicFeedFollow(id)
 	return
 }
 
@@ -61,12 +63,13 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 		return
 	}
 	for _, v := range privateFeeds {
-		feed, err := s.Service.Public.GetPublicFeed(v.URL)
+		feed, err := s.Service.Public.GetPublicFeedByID(v.PublicID.Hex())
 		if err != nil {
 			return feeds, err
 		}
 		feeds = append(feeds, graphql.Feed{
 			ID:       v.ID.Hex(),
+			PublicID: feed.PublicID,
 			URL:      v.URL,
 			Title:    v.Title,
 			Subtitle: feed.Subtitle,
@@ -91,4 +94,8 @@ func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs
 	}
 	url = feed.URL
 	return s.Model.EditFeed(userID, url, title, categoryIDs)
+}
+
+func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error) {
+	panic("not implement")
 }

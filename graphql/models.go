@@ -23,6 +23,7 @@ type Category struct {
 
 type Feed struct {
 	ID       string    `json:"id"`
+	PublicID string    `json:"publicId"`
 	URL      string    `json:"url"`
 	Title    string    `json:"title"`
 	Subtitle string    `json:"subtitle"`
@@ -31,8 +32,9 @@ type Feed struct {
 }
 
 type User struct {
-	Email string   `json:"email"`
-	Info  UserInfo `json:"info"`
+	Email      string     `json:"email"`
+	Info       UserInfo   `json:"info"`
+	Categories []Category `json:"categories"`
 }
 
 type UserInfo struct {
