@@ -24,21 +24,21 @@ type Article struct {
 	Later bool   `bson:"later"`
 }
 
-func (m *FeedModel) AddFeed(userID, categoryID string, publicFeed PublicFeed) (feed Feed, err error) {
+func (m *FeedModel) AddFeed(userID, url, title, categoryID string, articlesUrl []string) (feed Feed, err error) {
 	return feed, m.Update(func(b *bolt.Bucket) error {
 		ub, err := b.CreateBucketIfNotExists([]byte(userID))
 		if err != nil {
 			return err
 		}
-		uub, err := ub.CreateBucketIfNotExists([]byte("key_url_value_userId"))
+		uub, err := ub.CreateBucketIfNotExists([]byte("key_url_value_id"))
 		if err != nil {
 			return err
 		}
-		if uub.Get([]byte(publicFeed.URL)) == nil {
+		if uub.Get([]byte(url)) == nil {
 			return errors.New("repeat_url")
 		}
 		var articles []Article
-		for _, a := range publicFeed.Articles {
+		for _, a := range articlesUrl {
 			articles = append(articles, Article{
 				URL:   a,
 				Read:  false,
@@ -47,8 +47,8 @@ func (m *FeedModel) AddFeed(userID, categoryID string, publicFeed PublicFeed) (f
 		}
 		feed = Feed{
 			ID:         bson.NewObjectId(),
-			URL:        publicFeed.URL,
-			Title:      publicFeed.Title,
+			URL:        url,
+			Title:      title,
 			Categories: []bson.ObjectId{bson.ObjectIdHex(categoryID)},
 			Articles:   articles,
 		}
@@ -61,6 +61,42 @@ func (m *FeedModel) AddFeed(userID, categoryID string, publicFeed PublicFeed) (f
 			return err
 		}
 		return uub.Put([]byte(feed.URL), []byte(feed.URL))
+	})
+}
+
+func (m *FeedModel) GetFeedByID(userID, feedID string) (feed Feed, err error) {
+	return feed, m.View(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		bytes := ub.Get([]byte(feedID))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		return bson.Unmarshal(bytes, &feed)
+	})
+}
+
+func (m *FeedModel) GetFeedByURL(userID, url string) (feed Feed, err error) {
+	return feed, m.View(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		uub := ub.Bucket([]byte("key_url_value_id"))
+		if uub == nil {
+			return errors.New("not_found")
+		}
+		bytes := uub.Get([]byte(url))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		bytes = ub.Get(bytes)
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		return bson.Unmarshal(bytes, &feed)
 	})
 }
 

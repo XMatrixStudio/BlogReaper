@@ -2,15 +2,16 @@ package service
 
 import (
 	"encoding/xml"
+	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"github.com/kataras/iris/core/errors"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type PublicService interface {
-	GetPublicFeed(url string) (publicFeed model.PublicFeed, err error)
-	UpdatePublicFeed(url string) (publicFeed model.PublicFeed, err error)
+	GetPublicFeed(url string) (feed graphql.Feed, err error)
 }
 
 type publicService struct {
@@ -26,35 +27,71 @@ func NewPublicService(s *Service, m *model.PublicModel) PublicService {
 }
 
 // 从数据库中获取PublicFeed
-func (s *publicService) GetPublicFeed(url string) (publicFeed model.PublicFeed, err error) {
-	panic("not implement")
+func (s *publicService) GetPublicFeed(url string) (feed graphql.Feed, err error) {
+	publicFeed, err := s.Model.GetPublicFeedByURL(url)
+	if err != nil && err.Error() != "not_found" {
+		return
+	}
+	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-publicFeed.UpdateDate > 60*60*12 {
+		publicFeed, err = s.UpdatePublicFeed(url)
+		if err != nil {
+			return
+		}
+	}
+	feed = graphql.Feed{
+		ID:       "",
+		URL:      publicFeed.URL,
+		Title:    publicFeed.Title,
+		Subtitle: publicFeed.Subtitle,
+		Articles: []graphql.Article{},
+	}
+	for _, v := range publicFeed.Articles {
+		publicArticle, err := s.Model.GetPublicArticleByURL(v)
+		if err != nil {
+			return feed, err
+		}
+		feed.Articles = append(feed.Articles, graphql.Article{
+			URL:        publicArticle.URL,
+			Title:      publicArticle.Title,
+			Published:  publicArticle.Published,
+			Updated:    publicArticle.Updated,
+			Content:    publicArticle.Content,
+			Summary:    publicArticle.Summary,
+			Categories: publicArticle.Categories,
+			Read:       false,
+			Later:      false,
+			FeedID:     "",
+		})
+	}
+	return
 }
 
-type feed struct {
-	Title    string  `xml:"title"`
-	Subtitle string  `xml:"subtitle"`
-	Author   author  `xml:"author"`
-	Entrys   []entry `xml:"entry"`
+type AtomFeed struct {
+	Title    string      `xml:"title"`
+	Subtitle string      `xml:"subtitle"`
+	Author   AtomAuthor  `xml:"author"`
+	Entries  []AtomEntry `xml:"entry"`
 }
 
-type author struct {
+type AtomAuthor struct {
 	Name string `xml:"name"`
 }
 
-type entry struct {
-	Title     string `xml:"title"`
-	Link      link   `xml:"link"`
-	Published string `xml:"published"`
-	Updated   string `xml:"updated"`
-	Content   string `xml:"content"`
-	Summary   string `xml:"summary"`
+type AtomEntry struct {
+	Title      string         `xml:"title"`
+	Link       AtomLink       `xml:"link"`
+	Published  string         `xml:"published"`
+	Updated    string         `xml:"updated"`
+	Content    string         `xml:"content"`
+	Summary    string         `xml:"summary"`
+	Categories []AtomCategory `xml:"category"`
 }
 
-type link struct {
+type AtomLink struct {
 	Href string `xml:"href,attr"`
 }
 
-type category struct {
+type AtomCategory struct {
 	Term string `xml:"term,attr"`
 }
 
@@ -72,19 +109,39 @@ func (s *publicService) UpdatePublicFeed(url string) (publicFeed model.PublicFee
 	if err != nil {
 		return
 	}
-	xml.Unmarshal(bytes, &publicFeed)
-	panic("not implement")
-	//// TODO
-	//// 获取atom.xml
-	//client := http.DefaultClient
-	//resp, err := client.Get(url)
-	//if err != nil {
-	//	return nil, errors.New("http_request_fail")
-	//}
-	//defer resp.Body.Close()
-	//con, _ := ioutil.ReadAll(resp.Body)
-	//var result feed
-	//// 解析atom.xml
-	//err = xml.Unmarshal(con, &result)
-	//fmt.Println(result.Entrys)
+	atomFeed := AtomFeed{}
+	err = xml.Unmarshal(bytes, &atomFeed)
+	if err != nil {
+		return
+	}
+	var articlesUrl []string
+	var articles []model.PublicArticle
+	for _, v := range atomFeed.Entries {
+		var categories []string
+		for _, vc := range v.Categories {
+			categories = append(categories, vc.Term)
+		}
+		articlesUrl = append(articlesUrl, v.Link.Href)
+		articles = append(articles, model.PublicArticle{
+			URL:        v.Link.Href,
+			FeedURL:    url,
+			Title:      v.Title,
+			Published:  v.Published,
+			Updated:    v.Updated,
+			Content:    v.Content,
+			Summary:    v.Summary,
+			Categories: categories,
+			Read:       0,
+		})
+	}
+	err = s.Model.AddOrUpdatePublicArticles(url, articles)
+	if err != nil {
+		return
+	}
+	err = s.Model.AddOrUpdatePublicFeed(url, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
+	if err != nil {
+		return
+	}
+	publicFeed, err = s.Model.GetPublicFeedByURL(url)
+	return
 }

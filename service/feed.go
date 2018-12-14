@@ -27,5 +27,24 @@ func (s *feedService) AddFeed(userID, url, categoryID string) (feed graphql.Feed
 	if err != nil {
 		return feed, errors.New("invalid_id")
 	}
+	feed, err = s.Service.Public.GetPublicFeed(url)
+	if err != nil {
+		return feed, errors.New("invalid_url")
+	}
+	var articlesUrl []string
+	for _, v := range feed.Articles {
+		articlesUrl = append(articlesUrl, v.URL)
+	}
+	_, err = s.Model.GetFeedByURL(userID, url)
+	if err == nil {
+		return feed, errors.New("repeat_url")
+	}
+	privateFeed, err := s.Model.AddFeed(userID, url, feed.Title, categoryID, articlesUrl)
+	if err != nil {
+		return
+	}
+	feed.ID = privateFeed.ID.Hex()
+	feed.Title = privateFeed.Title
+	// TODO add read number++
 	return
 }
