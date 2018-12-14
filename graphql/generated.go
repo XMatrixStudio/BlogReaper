@@ -31,6 +31,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Feed() FeedResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -96,6 +97,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type FeedResolver interface {
+	Articles(ctx context.Context, obj *Feed, page int, numPerPage int) ([]Article, error)
+}
 type MutationResolver interface {
 	CreateLoginURL(ctx context.Context, backUrl string) (string, error)
 	Login(ctx context.Context, code string, state string) (*User, error)
@@ -1216,6 +1220,7 @@ var feedImplementors = []string{"Feed"}
 func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj *Feed) graphql.Marshaler {
 	fields := graphql.CollectFields(ctx, sel, feedImplementors)
 
+	var wg sync.WaitGroup
 	out := graphql.NewOrderedMap(len(fields))
 	invalid := false
 	for i, field := range fields {
@@ -1245,15 +1250,19 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 				invalid = true
 			}
 		case "articles":
-			out.Values[i] = ec._Feed_articles(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalid = true
-			}
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._Feed_articles(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
 	}
-
+	wg.Wait()
 	if invalid {
 		return graphql.Null
 	}
@@ -1387,7 +1396,7 @@ func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.Co
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Articles, nil
+		return ec.resolvers.Feed().Articles(rctx, obj, args["page"].(int), args["numPerPage"].(int))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -3785,7 +3794,12 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var parsedSchema = gqlparser.MustLoadSchema(
-	&ast.Source{Name: "graphql/schema.graphql", Input: `type Query {
+	&ast.Source{Name: "graphql/schema.graphql", Input: `schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
     # user
     #
     # @returns:
