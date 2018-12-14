@@ -132,8 +132,14 @@ type Mutation {
     # editFeed
     #
     # @params:
+    #   id - 订阅源的id
+    #   title - 更新的标题
+    #   categoryId - 传入的分类的id
     # @returns:
+    #   Boolean - 是否修改成功
     # @errors:
+    #   not_login - 未登录
+    #   not_found - 订阅源id不存在
     editFeed(id: String!, title: String, categoryId: [String!]): Boolean!
 
     removeCategory(id: String!): Boolean!

@@ -129,7 +129,69 @@ func (m *FeedModel) GetFeedsByCategoryID(userID, categoryID string) (feeds []Fee
 }
 
 func (m *FeedModel) EditFeed(userID, feedID, title string, categoryIDs []string) (feed Feed, err error) {
-	panic("not implement")
+	return feed, m.Update(func(b *bolt.Bucket) error {
+		ub, err := b.CreateBucketIfNotExists([]byte(userID))
+		if err != nil {
+			return err
+		}
+		pub, err := ub.CreateBucketIfNotExists([]byte("key_pid_value_id"))
+		if err != nil {
+			return err
+		}
+		bytes := ub.Get([]byte(feedID))
+		if bytes == nil {
+			return errors.New("invalid_id")
+		}
+		oldFeed := Feed{}
+		err = bson.Unmarshal(bytes, &oldFeed)
+		if err != nil {
+			return err
+		}
+		url := oldFeed.URL
+		articles := oldFeed.Articles
+		publicId := oldFeed.PublicID
+		var categories []bson.ObjectId
+		if categoryIDs == nil {
+			categories = oldFeed.Categories
+		}
+		err = pub.Delete([]byte(publicId))
+		if err != nil {
+			return err
+		}
+		err = ub.Delete([]byte(feedID))
+		if err != nil {
+			return err
+		}
+
+		if categoryIDs != nil {
+			for _,id := range categoryIDs {
+				categories=append(categories,bson.ObjectIdHex(id))
+			}
+		}
+
+		feed := Feed{
+			ID:         bson.ObjectIdHex(feedID),
+			PublicID:   publicId,
+			URL:        url,
+			Title:      title,
+			Categories: categories,
+			Articles:   articles,
+		}
+		bytes, err = bson.Marshal(&feed)
+		if err != nil {
+			return err
+		}
+
+		err = ub.Put([]byte(feedID), bytes)
+		if err != nil {
+			return err
+		}
+		err = pub.Put([]byte(publicId), []byte(feedID))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (m *FeedModel) EditArticle(userID, categoryID, url, articleURL string, read, later bool) (err error) {
