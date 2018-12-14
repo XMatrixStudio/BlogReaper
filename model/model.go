@@ -1,8 +1,8 @@
 package model
 
 import (
+	"errors"
 	"github.com/boltdb/bolt"
-	"github.com/kataras/iris/core/errors"
 	"time"
 )
 
@@ -12,13 +12,17 @@ type Model struct {
 }
 
 func (m *Model) View(fn func(b *bolt.Bucket) error) error {
-	return m.DB.Update(func(tx *bolt.Tx) error {
+	err := m.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.BucketName))
 		if b == nil {
 			return errors.New("bucket_not_found")
 		}
 		return fn(b)
 	})
+	if err != nil && err.Error() == "bucket_not_found" {
+		return m.Update(fn)
+	}
+	return err
 }
 
 func (m *Model) Update(fn func(b *bolt.Bucket) error) error {

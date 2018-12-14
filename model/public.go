@@ -1,5 +1,11 @@
 package model
 
+import (
+	"github.com/boltdb/bolt"
+	"github.com/globalsign/mgo/bson"
+	"time"
+)
+
 type PublicModel struct {
 	*Model
 }
@@ -22,4 +28,24 @@ type PublicArticle struct {
 	Summary    string   `bson:"summary"`
 	Categories []string `bson:"categories"`
 	Read       int64    `bson:"read"`
+}
+
+
+// AddPublicFeed 添加公共源
+func (m *PublicModel) AddPublicFeed(url, title, subtitle string, articles []string) error {
+	return m.Update(func(b *bolt.Bucket) error {
+		bytes, err := bson.Marshal(&PublicFeed{
+			URL: url,
+			Title: title,
+			Subtitle: subtitle,
+			Articles: articles,
+			Star: 0,
+			UpdateDate: int64(time.Now().Second()),
+		})
+		if err != nil {
+			return err
+		}
+		b.Put([]byte(url), bytes)
+		return nil
+	})
 }

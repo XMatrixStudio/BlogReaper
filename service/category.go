@@ -7,6 +7,7 @@ import (
 )
 
 type CategoryService interface {
+	GetModel() *model.CategoryModel
 	AddCategory(userID, name string) (category graphql.Category, err error)
 	GetCategories(userID string) (categories []graphql.Category, err error)
 	EditCategory(userID, categoryID, newName string) (success bool, err error)
@@ -22,6 +23,10 @@ func NewCategoryService(s *Service, m *model.CategoryModel) CategoryService {
 		Model:   m,
 		Service: s,
 	}
+}
+
+func (s *categoryService) GetModel() *model.CategoryModel {
+	return s.Model
 }
 
 func (s *categoryService) AddCategory(userID, name string) (category graphql.Category, err error) {

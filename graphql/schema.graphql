@@ -1,3 +1,8 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
 type Query {
     # user
     #
@@ -24,9 +29,34 @@ type Query {
     #   not_login - 未登录
     feeds: [Feed!]!
 
-    # publicFeeds
+    # articles
+    #
+    # @params
+    #   later - 筛选稍后阅读，可为nil
+    #   today - 筛选今日文章，可为nil
+    # @returns
+    #   []Article - 筛选或未筛选的文章
+    # @errors:
+    #   not_login - 未登录
+    articles(later: Boolean, today: Boolean): [Article!]!
 
-    # publicArticles
+    # popularFeeds
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页订阅源数
+    # @returns:
+    #   []Feed - 筛选得到的订阅源
+    popularFeeds(page: Int!, numPerPage: Int!): [Feed!]!
+
+    # popularArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Feed - 筛选得到的文章
+    popularArticles(page: Int!, numPerPage: Int!): [Article!]!
 }
 
 type Mutation {
@@ -53,7 +83,8 @@ type Mutation {
 
     # logout
     #
-    # @errors:
+    # @returns:
+    #   Boolean - 是否注销成功
     logout: Boolean!
 
     # addCategory
@@ -97,6 +128,7 @@ type Mutation {
     editCategory(id: String!, name: String!): Boolean!
 
     editFeed(url: String!, title: String, categoryId: String): Boolean!
+    removeCategory(id: String!): Boolean!
     removeFeed(url: String!): Boolean!
 }
 
@@ -117,6 +149,14 @@ type Feed {
     url: String!
     title: String!
     subtitle: String!
+
+    # articles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
     articles(page: Int!, numPerPage: Int!): [Article!]!
 }
 
@@ -136,4 +176,5 @@ type Article {
     categories: [String!]!
     read: Boolean!
     later: Boolean!
+    feedId: String!
 }

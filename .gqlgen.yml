@@ -11,6 +11,11 @@ exec:
 model:
   filename: graphql/models.go
   package: graphql
+models:
+  Feed:
+    fields:
+      articles:
+        resolver: true
 resolver:
   filename: resolver/resolver.go
   package: resolver

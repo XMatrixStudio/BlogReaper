@@ -57,6 +57,10 @@ func (r *mutationResolver) EditFeed(ctx context.Context, url string, title *stri
 	panic("not implemented")
 }
 
+func (r *mutationResolver) RemoveCategory(ctx context.Context, id string) (bool, error) {
+	panic("not implemented")
+}
+
 func (r *mutationResolver) RemoveFeed(ctx context.Context, url string) (bool, error) {
 	if r.Session.Get("id") == nil {
 		return false, errors.New("not_login")

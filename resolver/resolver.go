@@ -34,3 +34,9 @@ type queryResolver struct{ *Resolver }
 func (r *Resolver) Query() graphql.QueryResolver {
 	return &queryResolver{r}
 }
+
+type feedResolver struct{ *Resolver }
+
+func (r *Resolver) Feed() graphql.FeedResolver {
+	return &feedResolver{r}
+}
