@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 )
@@ -58,5 +59,15 @@ func (s *categoryService) GetCategories(userID string) (categories []graphql.Cat
 }
 
 func (s *categoryService) EditCategory(userID, categoryID, newName string) (success bool, err error) {
-	panic("not implement")
+	category, err := s.Model.GetCategoryByName(userID, newName)
+	if err != nil {
+		return false, err
+	}
+	if category.Name != "" && category.ID.Hex() != categoryID {
+		return false, errors.New("repeat_name")
+	}
+	if category.Name != "" {
+		return true, nil
+	}
+	return s.Model.EditCategory(userID, categoryID, newName)
 }
