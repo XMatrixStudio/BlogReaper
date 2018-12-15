@@ -90,7 +90,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		User            func(childComplexity int) int
-		Feeds           func(childComplexity int, keyword string) int
+		Feeds           func(childComplexity int, id *string, keyword *string) int
 		PopularFeeds    func(childComplexity int, page int, numPerPage int) int
 		PopularArticles func(childComplexity int, page int, numPerPage int) int
 	}
@@ -131,7 +131,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	User(ctx context.Context) (*User, error)
-	Feeds(ctx context.Context, keyword string) ([]Feed, error)
+	Feeds(ctx context.Context, id *string, keyword *string) ([]Feed, error)
 	PopularFeeds(ctx context.Context, page int, numPerPage int) ([]Feed, error)
 	PopularArticles(ctx context.Context, page int, numPerPage int) ([]Article, error)
 }
@@ -444,15 +444,34 @@ func field_Mutation_removeFeed_args(rawArgs map[string]interface{}) (map[string]
 
 func field_Query_feeds_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["keyword"]; ok {
+	var arg0 *string
+	if tmp, ok := rawArgs["id"]; ok {
 		var err error
-		arg0, err = graphql.UnmarshalString(tmp)
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg0 = &ptr1
+		}
+
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["keyword"] = arg0
+	args["id"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["keyword"]; ok {
+		var err error
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg1 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keyword"] = arg1
 	return args, nil
 
 }
@@ -932,7 +951,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Feeds(childComplexity, args["keyword"].(string)), true
+		return e.complexity.Query.Feeds(childComplexity, args["id"].(*string), args["keyword"].(*string)), true
 
 	case "Query.popularFeeds":
 		if e.complexity.Query.PopularFeeds == nil {
@@ -2530,7 +2549,7 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Feeds(rctx, args["keyword"].(string))
+		return ec.resolvers.Query().Feeds(rctx, args["id"].(*string), args["keyword"].(*string))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -4663,7 +4682,7 @@ type Query {
     #   []Feed - 订阅源
     # @errors:
     #   empty_keyword - 关键词为空
-    feeds(keyword: String!): [Feed!]!
+    feeds(id:String, keyword: String): [Feed!]!
 
     # popularFeeds
     #

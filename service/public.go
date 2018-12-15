@@ -364,6 +364,10 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 			} else {
 				picture = find.First().AttrOr("src", "")
 			}
+			arrRune := []rune(document.Text())
+			if len(arrRune) > 200 {
+				arrRune = arrRune[:200]
+			}
 			articlesUrl = append(articlesUrl, v.Link)
 			articles = append(articles, model.PublicArticle{
 				URL:        v.Link,
@@ -372,7 +376,7 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 				Published:  v.PubDate,
 				Updated:    "",
 				Content:    v.Description,
-				Summary:    "",
+				Summary:    string(arrRune),
 				PictureURL: picture,
 				Categories: categories,
 				Read:       0,
