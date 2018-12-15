@@ -158,5 +158,32 @@ func (m *CategoryModel) EditCategory(userID, categoryID, newName string) (succes
 }
 
 func (m *CategoryModel) RemoveCategory(userID, categoryID string) (success bool, err error) {
-	panic("not implement")
+	return success, m.Update(func(b *bolt.Bucket) error {
+		success = false
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		nub := ub.Bucket([]byte("key_name_value_id"))
+		if nub == nil {
+			return errors.New("not_found")
+		}
+		bytes := ub.Get([]byte(categoryID))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		category := Category{}
+		bson.Unmarshal(bytes, &category)
+		name := category.Name
+		err = ub.Delete([]byte(categoryID))
+		if err != nil {
+			return err
+		}
+		err = nub.Delete([]byte(name))
+		if err != nil {
+			return err
+		}
+		success = true
+		return nil
+	})
 }
