@@ -77,5 +77,43 @@ func (s *categoryService) EditCategory(userID, categoryID, newName string) (succ
 }
 
 func (s *categoryService) RemoveCategory(userID, categoryID string) (success bool, err error) {
-	panic("not implement")
+	_, err = s.Model.GetCategoryById(userID, categoryID)
+	if err != nil {
+		return false, err
+	}
+	feeds, err := s.Service.Feed.GetModel().GetFeedsByCategoryID(userID, categoryID)
+	if err != nil && err.Error() != "not_found" {
+		return false, err
+	}
+	categories, err := s.Model.GetCategories(userID)
+	if err != nil {
+		return false, err
+	}
+	categoryMap := make(map[string]bool)
+	for _, category := range categories {
+		categoryMap[category.ID.Hex()] = true
+	}
+	for _, feed := range feeds {
+		categoryIDs, err := s.Service.Feed.GetModel().GetCategoryByFeedID(userID, feed.ID.Hex())
+		if err != nil {
+			return false, err
+		}
+		for i, id := range categoryIDs {
+			_, exist := categoryMap[id]
+			if exist {
+				categoriesString := append(categoryIDs[:i],categoryIDs[i+1:]...)
+				_, err := s.Service.Feed.EditFeed(userID, feed.ID.Hex(), nil, categoriesString)
+				if err != nil {
+					return false, err
+				}
+			} else {
+				_, err := s.Service.Feed.RemoveFeed(userID, feed.ID.Hex())
+				if err != nil {
+					return false, err
+				}
+			}
+		}
+	}
+	success, err = s.Model.RemoveCategory(userID, categoryID)
+	return 
 }

@@ -142,8 +142,19 @@ type Mutation {
     #   Boolean - 是否修改成功
     # @errors:
     #   not_login - 未登录
+    #   not_found - 阅读源不存在
+    #   invalid_category - 分类不存在
     editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
 
+    # removeCategory
+    #
+    # @params:
+    #   id - 分类的id
+    # @returns:
+    #   Boolean - 是否修改成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 分类不存在
     removeCategory(id: String!): Boolean!
 
     # removeFeed
