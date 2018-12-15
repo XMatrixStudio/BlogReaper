@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/kataras/iris/core/errors"
@@ -36,8 +37,8 @@ type PublicArticle struct {
 }
 
 type PopularArticles struct {
-	UpdateDate int64           `bson:"updateDate"` // 更新时间，如果超过12小时就更新，或强制更新
-	Articles   []PublicArticle `bson:"articles"`
+	UpdateDate int64             `bson:"updateDate"` // 更新时间，如果超过12小时就更新，或强制更新
+	Articles   []graphql.Article `bson:"articles"`
 }
 
 func (m *PublicModel) AddPublicFeed(url, title, subtitle string, articles []string) (publicFeed PublicFeed, err error) {
@@ -290,7 +291,7 @@ func (m *PublicModel) GetPopularArticles() (articles PopularArticles, err error)
 	})
 }
 
-func (m *PublicModel) UpdatePopularArticles(publicArticles []PublicArticle) (articles PopularArticles, err error) {
+func (m *PublicModel) UpdatePopularArticles(publicArticles []graphql.Article) (articles PopularArticles, err error) {
 	return articles, m.Update(func(b *bolt.Bucket) error {
 		articles = PopularArticles{
 			UpdateDate: time.Now().Unix(),

@@ -27,7 +27,14 @@ func (r *queryResolver) Feeds(ctx context.Context, keyword string) ([]graphql.Fe
 }
 
 func (r *queryResolver) PopularArticles(ctx context.Context, page int, numPerPage int) ([]graphql.Article, error) {
-	panic("not implemented")
+	if page <= 0 || numPerPage <= 0 {
+		return nil, errors.New("invalid_params")
+	}
+	feeds, err := r.Service.Public.GetPopularPublicArticles(page, numPerPage)
+	if err != nil {
+		return nil, err
+	}
+	return feeds, nil
 }
 
 func (r *queryResolver) PopularFeeds(ctx context.Context, page int, numPerPage int) ([]graphql.Feed, error) {

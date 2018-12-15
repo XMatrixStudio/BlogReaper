@@ -11,6 +11,7 @@ type CategoryService interface {
 	AddCategory(userID, name string) (category graphql.Category, err error)
 	GetCategories(userID string) (categories []graphql.Category, err error)
 	EditCategory(userID, categoryID, newName string) (success bool, err error)
+	RemoveCategory(userID, categoryID string) (success bool, err error)
 }
 
 type categoryService struct {
@@ -73,4 +74,8 @@ func (s *categoryService) EditCategory(userID, categoryID, newName string) (succ
 		return true, nil
 	}
 	return s.Model.EditCategory(userID, categoryID, newName)
+}
+
+func (s *categoryService) RemoveCategory(userID, categoryID string) (success bool, err error) {
+	panic("not implement")
 }

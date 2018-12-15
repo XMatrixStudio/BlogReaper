@@ -95,6 +95,7 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 					Read:       priv.Read,
 					Later:      priv.Later,
 					FeedID:     v.ID.Hex(),
+					FeedTitle:  feed.Title,
 				})
 			}
 		}
@@ -104,9 +105,10 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 		var articles []model.Article
 		for _, av := range feed.Articles {
 			articles = append(articles, model.Article{
-				URL:   av.URL,
-				Read:  av.Read,
-				Later: av.Later,
+				URL:     av.URL,
+				Read:    av.Read,
+				Later:   av.Later,
+				Content: nil,
 			})
 		}
 		err = s.Model.UpdateArticles(userID, v.ID.Hex(), articles)
@@ -114,13 +116,14 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 			return nil, err
 		}
 		feeds = append(feeds, graphql.Feed{
-			ID:       v.ID.Hex(),
-			PublicID: feed.PublicID,
-			URL:      v.URL,
-			Title:    v.Title,
-			Subtitle: feed.Subtitle,
-			Follow:   feed.Follow,
-			Articles: feed.Articles,
+			ID:             v.ID.Hex(),
+			PublicID:       feed.PublicID,
+			URL:            v.URL,
+			Title:          v.Title,
+			Subtitle:       feed.Subtitle,
+			Follow:         feed.Follow,
+			ArticlesNumber: len(feed.Articles),
+			Articles:       feed.Articles,
 		})
 	}
 	return

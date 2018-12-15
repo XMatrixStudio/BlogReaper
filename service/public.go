@@ -6,6 +6,7 @@ import (
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"github.com/kataras/iris/core/errors"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -16,6 +17,7 @@ type PublicService interface {
 	GetPublicFeedByURL(url string) (feed graphql.Feed, err error)
 	GetPublicFeedByKeyword(keyword string) (feeds []graphql.Feed, err error)
 	GetPopularPublicFeeds(page, numPerPage int) (feeds []graphql.Feed, err error)
+	GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error)
 }
 
 type publicService struct {
@@ -84,13 +86,14 @@ func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err e
 		return
 	}
 	feed = graphql.Feed{
-		ID:       "",
-		PublicID: publicFeed.ID.Hex(),
-		URL:      publicFeed.URL,
-		Title:    publicFeed.Title,
-		Subtitle: publicFeed.Subtitle,
-		Follow:   int(publicFeed.Follow),
-		Articles: []graphql.Article{},
+		ID:             "",
+		PublicID:       publicFeed.ID.Hex(),
+		URL:            publicFeed.URL,
+		Title:          publicFeed.Title,
+		Subtitle:       publicFeed.Subtitle,
+		Follow:         int(publicFeed.Follow),
+		ArticlesNumber: 0,
+		Articles:       []graphql.Article{},
 	}
 	for _, v := range publicFeed.Articles {
 		publicArticle, err := s.Model.GetPublicArticleByURL(v)
@@ -108,8 +111,10 @@ func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err e
 			Read:       false,
 			Later:      false,
 			FeedID:     "",
+			FeedTitle:  feed.Title,
 		})
 	}
+	feed.ArticlesNumber = len(feed.Articles)
 	return
 }
 
@@ -120,13 +125,14 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 	}
 	for _, v := range publicFeeds {
 		feed := graphql.Feed{
-			ID:       "",
-			PublicID: v.ID.Hex(),
-			URL:      v.URL,
-			Title:    v.Title,
-			Subtitle: v.Subtitle,
-			Follow:   int(v.Follow),
-			Articles: []graphql.Article{},
+			ID:             "",
+			PublicID:       v.ID.Hex(),
+			URL:            v.URL,
+			Title:          v.Title,
+			Subtitle:       v.Subtitle,
+			Follow:         int(v.Follow),
+			ArticlesNumber: 0,
+			Articles:       []graphql.Article{},
 		}
 		for _, v := range v.Articles {
 			publicArticle, err := s.Model.GetPublicArticleByURL(v)
@@ -144,8 +150,10 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 				Read:       false,
 				Later:      false,
 				FeedID:     "",
+				FeedTitle:  feed.Title,
 			})
 		}
+		feed.ArticlesNumber = len(feed.Articles)
 		feeds = append(feeds, feed)
 	}
 	return
@@ -203,9 +211,40 @@ func (s *publicService) GetPopularPublicFeeds(page, numPerPage int) (feeds []gra
 func (s *publicService) GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error) {
 	popularArticles, err := s.Model.GetPopularArticles()
 	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-popularArticles.UpdateDate > 60*60*12 {
-		s.GetPopularPublicFeeds(1, 100)
+		feeds, err := s.GetPopularPublicFeeds(1, 100)
+		if err != nil {
+			return articles, err
+		}
+		for _, v := range feeds {
+			for _, a := range v.Articles {
+				articles = append(articles, a)
+			}
+		}
+		dst := make([]graphql.Article, len(articles))
+		perm := rand.Perm(len(articles))
+		for i, v := range perm {
+			dst[v] = articles[i]
+		}
+		if len(dst) >= 100 {
+			articles = dst[:100]
+		} else {
+			articles = dst
+		}
+		_, err = s.Model.UpdatePopularArticles(articles)
+		if err != nil {
+			return nil, nil
+		}
+	} else {
+		articles = popularArticles.Articles
 	}
-	panic("")
+	start := (page - 1) * (numPerPage)
+	end := (page-1)*(numPerPage) + numPerPage
+	if len(articles) < start {
+		return nil, nil
+	} else if len(articles) <= end {
+		end = len(articles)
+	}
+	return articles[start:end], nil
 }
 
 type AtomFeed struct {
