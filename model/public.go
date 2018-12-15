@@ -277,7 +277,35 @@ func (m *PublicModel) IncreasePublicFeedFollow(id string) (err error) {
 }
 
 func (m *PublicModel) DecreasePublicFeedFollow(id string) (err error) {
-	panic("not implement")
+	return m.Update(func(b *bolt.Bucket) error {
+		fb, err := b.CreateBucketIfNotExists([]byte("feed"))
+		if err != nil {
+			return err
+		}
+		bytes := fb.Get([]byte(id))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		publicFeed := PublicFeed{}
+		err = bson.Unmarshal(bytes, &publicFeed)
+		if err != nil {
+			return err
+		}
+		if publicFeed.Follow > 0 {
+			publicFeed.Follow--
+		} else {
+			return errors.New("already_zero")
+		}
+		bytes, err = bson.Marshal(&publicFeed)
+		if err != nil {
+			return err
+		}
+		err = fb.Delete([]byte(id))
+		if err != nil {
+			return err
+		}
+		return fb.Put([]byte(id), bytes)
+	})
 }
 
 func (m *PublicModel) GetPopularArticles() (articles PopularArticles, err error) {

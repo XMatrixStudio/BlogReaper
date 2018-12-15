@@ -185,7 +185,20 @@ func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs
 }
 
 func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error) {
-	panic("not implement")
+	feed, err := s.Model.GetFeedByID(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	pid := feed.PublicID
+	err = s.Model.RemoveFeed(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	err = s.Service.Public.GetModel().DecreasePublicFeedFollow(pid.Hex())
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *feedService) EditArticle(userID, feedID, url string, read, later *bool) (success bool, err error) {
