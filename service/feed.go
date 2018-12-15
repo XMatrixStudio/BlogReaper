@@ -11,6 +11,7 @@ type FeedService interface {
 	GetModel() *model.FeedModel
 	AddFeed(userID, id, categoryID string) (feed graphql.Feed, err error)
 	GetFeedsByCategoryID(userID, categoryID string) (feeds []graphql.Feed, err error)
+	GetLaterArticles(userID string, page, numPerPage *int) (articles []graphql.Article, err error)
 	EditFeed(userID, feedID string, title *string, categoryIDs []string) (success bool, err error)
 	RemoveFeed(userID, feedID string) (success bool, err error)
 	EditArticle(userID, feedID, url string, read, later *bool) (success bool, err error)
@@ -123,6 +124,48 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 		})
 	}
 	return
+}
+
+func (s *feedService) GetLaterArticles(userID string, page, numPerPage *int) (articles []graphql.Article, err error) {
+	privateArticles, err := s.Model.GetLaterArticle(userID)
+	if err != nil && err.Error() == "not_found" {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	var start, end int
+	if page == nil {
+		start = 0
+		end = len(privateArticles)
+	} else {
+		start = (*page - 1) * (*numPerPage)
+		end = (*page-1)*(*numPerPage) + *numPerPage
+	}
+	if len(privateArticles) < start {
+		return nil, nil
+	} else if len(privateArticles) <= end {
+		end = len(privateArticles)
+	}
+	for i := start; i < end; i++ {
+		feed, err := s.Service.Public.GetPublicFeedByURL(privateArticles[i].Content.FeedURL)
+		if err != nil {
+			return nil, err
+		}
+		articles = append(articles, graphql.Article{
+			URL:        privateArticles[i].URL,
+			Title:      privateArticles[i].Content.Title,
+			Published:  privateArticles[i].Content.Published,
+			Updated:    privateArticles[i].Content.Updated,
+			Content:    privateArticles[i].Content.Content,
+			Summary:    privateArticles[i].Content.Summary,
+			Categories: privateArticles[i].Content.Categories,
+			Read:       privateArticles[i].Read,
+			Later:      privateArticles[i].Later,
+			FeedID:     "",
+			FeedTitle:  feed.Title,
+		})
+	}
+	return articles, nil
 }
 
 // 参数为nil表示不修改

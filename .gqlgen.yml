@@ -16,6 +16,8 @@ models:
     fields:
       categories:
         resolver: true
+      laterArticles:
+        resolver: true
   Category:
     fields:
       feeds:

@@ -4,6 +4,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/kataras/iris/core/errors"
+	"sort"
 )
 
 type FeedModel struct {
@@ -200,8 +201,8 @@ func (m *FeedModel) EditFeed(userID, feedID, title string, categoryIDs []string)
 		}
 
 		if categoryIDs != nil {
-			for _,id := range categoryIDs {
-				categories=append(categories,bson.ObjectIdHex(id))
+			for _, id := range categoryIDs {
+				categories = append(categories, bson.ObjectIdHex(id))
 			}
 		}
 
@@ -255,6 +256,38 @@ func (m *FeedModel) GetArticleByURL(userID, feedID, url string) (article Article
 				break
 			}
 		}
+		return nil
+	})
+}
+
+func (m *FeedModel) GetLaterArticle(userID string) (articles []Article, err error) {
+	return articles, m.View(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		err = ub.ForEach(func(k, v []byte) error {
+			if string(k) == "key_pid_value_id" {
+				return nil
+			}
+			feed := Feed{}
+			err = bson.Unmarshal(v, &feed)
+			if err != nil {
+				return err
+			}
+			for _, v := range feed.Articles {
+				if v.Later {
+					articles = append(articles, v)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		sort.Slice(articles, func(i, j int) bool {
+			return articles[i].Content.Published >= articles[j].Content.Published
+		})
 		return nil
 	})
 }

@@ -13,6 +13,7 @@ type Article struct {
 	Read       bool     `json:"read"`
 	Later      bool     `json:"later"`
 	FeedID     string   `json:"feedId"`
+	FeedTitle  string   `json:"feedTitle"`
 }
 
 type Category struct {
@@ -22,13 +23,14 @@ type Category struct {
 }
 
 type Feed struct {
-	ID       string    `json:"id"`
-	PublicID string    `json:"publicId"`
-	URL      string    `json:"url"`
-	Title    string    `json:"title"`
-	Subtitle string    `json:"subtitle"`
-	Follow   int       `json:"follow"`
-	Articles []Article `json:"articles"`
+	ID             string    `json:"id"`
+	PublicID       string    `json:"publicId"`
+	URL            string    `json:"url"`
+	Title          string    `json:"title"`
+	Subtitle       string    `json:"subtitle"`
+	Follow         int       `json:"follow"`
+	ArticlesNumber int       `json:"articlesNumber"`
+	Articles       []Article `json:"articles"`
 }
 
 type User struct {
