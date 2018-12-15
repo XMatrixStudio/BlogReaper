@@ -179,6 +179,20 @@ type AtomCategory struct {
 	Term string `xml:"term,attr"`
 }
 
+type RSSFeed struct {
+	Title string `xml:"title"`
+	Description string `xml:"description"`
+	Author string `xml:"author"`
+	Items []RSSItem `xml:"author"`
+}
+
+type RSSItem struct {
+	Title string `xml:"title"`
+	Link string `xml:"link"`
+	Description string `xml:"description"`
+	PubDate string `xml:"pubDate"`
+}
+
 // 从订阅源拉取数据，更新PublicFeed
 func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
 	res, err := http.Get(url)
@@ -193,6 +207,7 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 	if err != nil {
 		return
 	}
+
 	atomFeed := AtomFeed{}
 	err = xml.Unmarshal(bytes, &atomFeed)
 	if err != nil {
