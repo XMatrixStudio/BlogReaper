@@ -3,12 +3,14 @@ package service
 import (
 	"encoding/xml"
 	"errors"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	stdUrl "net/url"
+	"strings"
 	"time"
 )
 
@@ -294,19 +296,18 @@ type RSSTop struct {
 }
 
 type RSSFeed struct {
-	Title string `xml:"title"`
-	Description string `xml:"description"`
-	Items []RSSItem `xml:"item"`
+	Title       string    `xml:"title"`
+	Description string    `xml:"description"`
+	Items       []RSSItem `xml:"item"`
 }
 
 type RSSItem struct {
-	Title string `xml:"title"`
-	Link string `xml:"link"`
-	Description string `xml:"description"`
-	PubDate string `xml:"pubDate"`
-	Categories []string `xml:"category"`
+	Title       string   `xml:"title"`
+	Link        string   `xml:"link"`
+	Description string   `xml:"description"`
+	PubDate     string   `xml:"pubDate"`
+	Categories  []string `xml:"category"`
 }
-
 
 // 从订阅源拉取数据，更新PublicFeed
 func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
@@ -327,16 +328,18 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 	if err != nil {
 		return
 	}
-
 	atomFeed := AtomFeed{}
 	err = xml.Unmarshal(bytes, &atomFeed)
 	if len(atomFeed.Title) == 0 && len(atomFeed.Entries) == 0 {
 		/* atom解析失败，解析rss*/
 		rssTop := RSSTop{}
 		err = xml.Unmarshal(bytes, &rssTop)
+		if err != nil {
+			return publicFeed, err
+		}
 		rssFeed := rssTop.Channel
-		if len(atomFeed.Title) == 0 && len(atomFeed.Entries) == 0 {
-			return
+		if len(rssFeed.Title) == 0 && len(rssFeed.Items) == 0 {
+			return publicFeed, errors.New("invalid_url")
 		}
 		var articlesUrl []string
 		var articles []model.PublicArticle
@@ -344,6 +347,17 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 			var categories []string
 			for _, vc := range v.Categories {
 				categories = append(categories, vc)
+			}
+			document, err := goquery.NewDocumentFromReader(strings.NewReader(v.Description))
+			if err != nil {
+				return publicFeed, err
+			}
+			find := document.Find("img")
+			var picture string
+			if find == nil || find.First() == nil {
+				picture = ""
+			} else {
+				picture = find.First().AttrOr("src", "")
 			}
 			articlesUrl = append(articlesUrl, v.Link)
 			articles = append(articles, model.PublicArticle{
@@ -354,6 +368,7 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 				Updated:    "",
 				Content:    v.Description,
 				Summary:    "",
+				PictureURL: picture,
 				Categories: categories,
 				Read:       0,
 			})
@@ -377,6 +392,17 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 		for _, vc := range v.Categories {
 			categories = append(categories, vc.Term)
 		}
+		document, err := goquery.NewDocumentFromReader(strings.NewReader(v.Content))
+		if err != nil {
+			return publicFeed, err
+		}
+		find := document.Find("img")
+		var picture string
+		if find == nil || find.First() == nil {
+			picture = ""
+		} else {
+			picture = find.First().AttrOr("src", "")
+		}
 		articlesUrl = append(articlesUrl, v.Link.Href)
 		articles = append(articles, model.PublicArticle{
 			URL:        v.Link.Href,
@@ -386,6 +412,7 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 			Updated:    v.Updated,
 			Content:    v.Content,
 			Summary:    v.Summary,
+			PictureURL: picture,
 			Categories: categories,
 			Read:       0,
 		})
