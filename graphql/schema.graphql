@@ -143,6 +143,8 @@ type Mutation {
     # @params:
     # @returns:
     # @errors:
+    #   not_login - 未登录
+    #   not_found - 未找到记录
     removeFeed(id: String!): Boolean!
 }
 

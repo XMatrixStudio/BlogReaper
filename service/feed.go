@@ -86,5 +86,9 @@ func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs
 }
 
 func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error) {
-	panic("not implement")
+	err = s.Model.RemoveFeed(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

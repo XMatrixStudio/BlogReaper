@@ -62,10 +62,10 @@ func (r *mutationResolver) RemoveCategory(ctx context.Context, id string) (bool,
 	panic("not implemented")
 }
 
-func (r *mutationResolver) RemoveFeed(ctx context.Context, url string) (bool, error) {
+func (r *mutationResolver) RemoveFeed(ctx context.Context, id string) (bool, error) {
 	userID := r.Session.GetString("id")
 	if userID == "" {
 		return false, errors.New("not_login")
 	}
-	panic("not implemented")
+	return r.Service.Feed.RemoveFeed(userID, id)
 }

@@ -137,5 +137,30 @@ func (m *FeedModel) EditArticle(userID, categoryID, url, articleURL string, read
 }
 
 func (m *FeedModel) RemoveFeed(userID, feedID string) (err error) {
-	panic("not implement")
+	return m.Update(func(b *bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		pub := ub.Bucket([]byte("key_pid_value_id"))
+		if pub == nil {
+			return errors.New("not_found")
+		}
+		bytes := ub.Get([]byte(feedID))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		feed := Feed{}
+		err = ub.Delete([]byte(feedID))
+		if err != nil {
+			return err
+		}
+		bson.Unmarshal(bytes, &feed)
+		pid := feed.PublicID
+		err = pub.Delete([]byte(pid))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
