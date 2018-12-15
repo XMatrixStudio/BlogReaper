@@ -1,9 +1,11 @@
 package model
 
 import (
+	"errors"
+	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/kataras/iris/core/errors"
+	"sort"
 	"strings"
 	"time"
 )
@@ -32,6 +34,11 @@ type PublicArticle struct {
 	Summary    string   `bson:"summary"`
 	Categories []string `bson:"categories"`
 	Read       int64    `bson:"read"`
+}
+
+type PopularArticles struct {
+	UpdateDate int64             `bson:"updateDate"` // 更新时间，如果超过12小时就更新，或强制更新
+	Articles   []graphql.Article `bson:"articles"`
 }
 
 func (m *PublicModel) AddPublicFeed(url, title, subtitle string, articles []string) (publicFeed PublicFeed, err error) {
@@ -204,6 +211,34 @@ func (m *PublicModel) GetPublicFeedsByKeyword(keyword string) (publicFeeds []Pub
 	})
 }
 
+func (m *PublicModel) GetPublicFeedsSortedByFollow() (publicFeeds []PublicFeed, err error) {
+	return publicFeeds, m.View(func(b *bolt.Bucket) error {
+		fb := b.Bucket([]byte("feed"))
+		if fb == nil {
+			return errors.New("not_found")
+		}
+		err = fb.ForEach(func(k, v []byte) error {
+			if string(k) == "key_url_value_id" {
+				return nil
+			}
+			publicFeed := PublicFeed{}
+			err = bson.Unmarshal(v, &publicFeed)
+			if err != nil {
+				return err
+			}
+			publicFeeds = append(publicFeeds, publicFeed)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		sort.Slice(publicFeeds, func(i, j int) bool {
+			return publicFeeds[i].Follow > publicFeeds[j].Follow
+		})
+		return nil
+	})
+}
+
 func (m *PublicModel) GetPublicArticleByURL(url string) (article PublicArticle, err error) {
 	return article, m.View(func(b *bolt.Bucket) error {
 		ab := b.Bucket([]byte("article"))
@@ -243,5 +278,57 @@ func (m *PublicModel) IncreasePublicFeedFollow(id string) (err error) {
 }
 
 func (m *PublicModel) DecreasePublicFeedFollow(id string) (err error) {
-	panic("not implement")
+	return m.Update(func(b *bolt.Bucket) error {
+		fb, err := b.CreateBucketIfNotExists([]byte("feed"))
+		if err != nil {
+			return err
+		}
+		bytes := fb.Get([]byte(id))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		publicFeed := PublicFeed{}
+		err = bson.Unmarshal(bytes, &publicFeed)
+		if err != nil {
+			return err
+		}
+		if publicFeed.Follow > 0 {
+			publicFeed.Follow--
+		} else {
+			return errors.New("already_zero")
+		}
+		bytes, err = bson.Marshal(&publicFeed)
+		if err != nil {
+			return err
+		}
+		err = fb.Delete([]byte(id))
+		if err != nil {
+			return err
+		}
+		return fb.Put([]byte(id), bytes)
+	})
+}
+
+func (m *PublicModel) GetPopularArticles() (articles PopularArticles, err error) {
+	return articles, m.View(func(b *bolt.Bucket) error {
+		bytes := b.Get([]byte("popularArticles"))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		return bson.Unmarshal(bytes, &articles)
+	})
+}
+
+func (m *PublicModel) UpdatePopularArticles(publicArticles []graphql.Article) (articles PopularArticles, err error) {
+	return articles, m.Update(func(b *bolt.Bucket) error {
+		articles = PopularArticles{
+			UpdateDate: time.Now().Unix(),
+			Articles:   publicArticles,
+		}
+		bytes, err := bson.Marshal(&articles)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte("popularArticles"), bytes)
+	})
 }

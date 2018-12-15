@@ -53,6 +53,7 @@ type ComplexityRoot struct {
 		Read       func(childComplexity int) int
 		Later      func(childComplexity int) int
 		FeedId     func(childComplexity int) int
+		FeedTitle  func(childComplexity int) int
 	}
 
 	Category struct {
@@ -62,13 +63,14 @@ type ComplexityRoot struct {
 	}
 
 	Feed struct {
-		Id       func(childComplexity int) int
-		PublicId func(childComplexity int) int
-		Url      func(childComplexity int) int
-		Title    func(childComplexity int) int
-		Subtitle func(childComplexity int) int
-		Follow   func(childComplexity int) int
-		Articles func(childComplexity int, page *int, numPerPage *int) int
+		Id             func(childComplexity int) int
+		PublicId       func(childComplexity int) int
+		Url            func(childComplexity int) int
+		Title          func(childComplexity int) int
+		Subtitle       func(childComplexity int) int
+		Follow         func(childComplexity int) int
+		ArticlesNumber func(childComplexity int) int
+		Articles       func(childComplexity int, page *int, numPerPage *int) int
 	}
 
 	Mutation struct {
@@ -96,7 +98,7 @@ type ComplexityRoot struct {
 		Email         func(childComplexity int) int
 		Info          func(childComplexity int) int
 		Categories    func(childComplexity int, id *string) int
-		LaterArticles func(childComplexity int) int
+		LaterArticles func(childComplexity int, page *int, numPerPage *int) int
 	}
 
 	UserInfo struct {
@@ -134,6 +136,7 @@ type QueryResolver interface {
 }
 type UserResolver interface {
 	Categories(ctx context.Context, obj *User, id *string) ([]Category, error)
+	LaterArticles(ctx context.Context, obj *User, page *int, numPerPage *int) ([]Article, error)
 }
 
 func field_Category_feeds_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
@@ -536,6 +539,40 @@ func field_User_categories_args(rawArgs map[string]interface{}) (map[string]inte
 
 }
 
+func field_User_laterArticles_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["numPerPage"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg1 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["numPerPage"] = arg1
+	return args, nil
+
+}
+
 func field___Type_fields_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 bool
@@ -649,6 +686,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Article.FeedId(childComplexity), true
 
+	case "Article.feedTitle":
+		if e.complexity.Article.FeedTitle == nil {
+			break
+		}
+
+		return e.complexity.Article.FeedTitle(childComplexity), true
+
 	case "Category.id":
 		if e.complexity.Category.Id == nil {
 			break
@@ -716,6 +760,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Feed.Follow(childComplexity), true
+
+	case "Feed.articlesNumber":
+		if e.complexity.Feed.ArticlesNumber == nil {
+			break
+		}
+
+		return e.complexity.Feed.ArticlesNumber(childComplexity), true
 
 	case "Feed.articles":
 		if e.complexity.Feed.Articles == nil {
@@ -930,7 +981,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.User.LaterArticles(childComplexity), true
+		args, err := field_User_laterArticles_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.LaterArticles(childComplexity, args["page"].(*int), args["numPerPage"].(*int)), true
 
 	case "UserInfo.name":
 		if e.complexity.UserInfo.Name == nil {
@@ -1067,6 +1123,11 @@ func (ec *executionContext) _Article(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "feedId":
 			out.Values[i] = ec._Article_feedId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "feedTitle":
+			out.Values[i] = ec._Article_feedTitle(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
@@ -1360,6 +1421,33 @@ func (ec *executionContext) _Article_feedId(ctx context.Context, field graphql.C
 	return graphql.MarshalString(res)
 }
 
+// nolint: vetshadow
+func (ec *executionContext) _Article_feedTitle(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Article",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedTitle, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
 var categoryImplementors = []string{"Category"}
 
 // nolint: gocyclo, errcheck, gas, goconst
@@ -1570,6 +1658,11 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "articlesNumber":
+			out.Values[i] = ec._Feed_articlesNumber(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "articles":
 			wg.Add(1)
 			go func(i int, field graphql.CollectedField) {
@@ -1739,6 +1832,33 @@ func (ec *executionContext) _Feed_follow(ctx context.Context, field graphql.Coll
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Follow, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalInt(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Feed_articlesNumber(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ArticlesNumber, nil
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -2648,10 +2768,14 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				wg.Done()
 			}(i, field)
 		case "laterArticles":
-			out.Values[i] = ec._User_laterArticles(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalid = true
-			}
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._User_laterArticles(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2788,16 +2912,22 @@ func (ec *executionContext) _User_categories(ctx context.Context, field graphql.
 func (ec *executionContext) _User_laterArticles(ctx context.Context, field graphql.CollectedField, obj *User) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_User_laterArticles_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	rctx := &graphql.ResolverContext{
 		Object: "User",
-		Args:   nil,
+		Args:   args,
 		Field:  field,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LaterArticles, nil
+		return ec.resolvers.User().LaterArticles(rctx, obj, args["page"].(*int), args["numPerPage"].(*int))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -4502,6 +4632,8 @@ type Query {
     #   numPerPage - 每页订阅源数
     # @returns:
     #   []Feed - 筛选得到的订阅源
+    # @errors:
+    #   invalid_params - 参数错误
     popularFeeds(page: Int!, numPerPage: Int!): [Feed!]!
 
     # popularArticles
@@ -4607,8 +4739,13 @@ type Mutation {
     # editFeed
     #
     # @params:
+    #   id - 订阅源的id
+    #   title - 更新的标题
+    #   categoryId - 传入的分类的id
     # @returns:
+    #   Boolean - 是否修改成功
     # @errors:
+    #   not_login - 未登录
     editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
 
     removeCategory(id: String!): Boolean!
@@ -4616,8 +4753,12 @@ type Mutation {
     # removeFeed
     # 
     # @params:
+    #   id - 订阅源的id
     # @returns:
+    #   Boolean - 是否移除成功
     # @errors:
+    #   not_login - 未登录
+    #   not_found - 未找到记录
     removeFeed(id: String!): Boolean!
 }
 
@@ -4635,7 +4776,17 @@ type User {
     #   not_login - 未登录
     categories(id: String): [Category!]!
 
-    laterArticles: [Article!]!
+    # laterArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    laterArticles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type UserInfo {
@@ -4643,24 +4794,6 @@ type UserInfo {
     avatar: String!
     bio: String!
     gender: Int!
-}
-
-type Feed {
-    id: String!
-    publicId: String!
-    url: String!
-    title: String!
-    subtitle: String!
-    follow: Int!
-
-    # articles
-    #
-    # @params:
-    #   page - 页数
-    #   numPerPage - 每页文章数
-    # @returns:
-    #   []Article - 筛选得到的文章
-    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Category {
@@ -4675,7 +4808,27 @@ type Category {
     #   []Feed - 订阅源
     # @errors:
     #   not_login - 未登录
+    #   invalid_id - 分类不存在
     feeds(id: String): [Feed!]!
+}
+
+type Feed {
+    id: String!
+    publicId: String!
+    url: String!
+    title: String!
+    subtitle: String!
+    follow: Int!
+    articlesNumber: Int!
+
+    # articles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Article {
@@ -4688,7 +4841,12 @@ type Article {
     categories: [String!]!
     read: Boolean!
     later: Boolean!
+
+    # only for user's article
     feedId: String!
+
+    # only for later and popular article
+    feedTitle: String!
 }
 `},
 )

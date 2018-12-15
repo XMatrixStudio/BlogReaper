@@ -2,7 +2,6 @@ package resolver
 
 import (
 	"context"
-	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 )
 
@@ -18,5 +17,5 @@ func (r *categoryResolver) Feeds(ctx context.Context, obj *graphql.Category, id 
 			return []graphql.Feed{v}, nil
 		}
 	}
-	return nil, errors.New("invalid_id")
+	return nil, nil
 }

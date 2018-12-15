@@ -2,11 +2,13 @@ package service
 
 import (
 	"encoding/xml"
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
-	"github.com/kataras/iris/core/errors"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	stdUrl "net/url"
 	"time"
 )
 
@@ -15,6 +17,8 @@ type PublicService interface {
 	GetPublicFeedByID(id string) (feed graphql.Feed, err error)
 	GetPublicFeedByURL(url string) (feed graphql.Feed, err error)
 	GetPublicFeedByKeyword(keyword string) (feeds []graphql.Feed, err error)
+	GetPopularPublicFeeds(page, numPerPage int) (feeds []graphql.Feed, err error)
+	GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error)
 }
 
 type publicService struct {
@@ -70,7 +74,12 @@ func (s *publicService) GetPublicFeedByID(id string) (feed graphql.Feed, err err
 }
 
 func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err error) {
-	publicFeed, err := s.Model.GetPublicFeedByURL(url)
+	u, err := stdUrl.Parse(url)
+	if err != nil {
+		return feed, errors.New("invalid_url")
+	}
+	notSchemaUrl := u.Host + u.Path
+	publicFeed, err := s.Model.GetPublicFeedByURL(notSchemaUrl)
 	if err != nil && err.Error() != "not_found" {
 		return
 	}
@@ -83,13 +92,14 @@ func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err e
 		return
 	}
 	feed = graphql.Feed{
-		ID:       "",
-		PublicID: publicFeed.ID.Hex(),
-		URL:      publicFeed.URL,
-		Title:    publicFeed.Title,
-		Subtitle: publicFeed.Subtitle,
-		Follow:   int(publicFeed.Follow),
-		Articles: []graphql.Article{},
+		ID:             "",
+		PublicID:       publicFeed.ID.Hex(),
+		URL:            publicFeed.URL,
+		Title:          publicFeed.Title,
+		Subtitle:       publicFeed.Subtitle,
+		Follow:         int(publicFeed.Follow),
+		ArticlesNumber: 0,
+		Articles:       []graphql.Article{},
 	}
 	for _, v := range publicFeed.Articles {
 		publicArticle, err := s.Model.GetPublicArticleByURL(v)
@@ -107,8 +117,10 @@ func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err e
 			Read:       false,
 			Later:      false,
 			FeedID:     "",
+			FeedTitle:  feed.Title,
 		})
 	}
+	feed.ArticlesNumber = len(feed.Articles)
 	return
 }
 
@@ -119,13 +131,14 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 	}
 	for _, v := range publicFeeds {
 		feed := graphql.Feed{
-			ID:       "",
-			PublicID: v.ID.Hex(),
-			URL:      v.URL,
-			Title:    v.Title,
-			Subtitle: v.Subtitle,
-			Follow:   int(v.Follow),
-			Articles: []graphql.Article{},
+			ID:             "",
+			PublicID:       v.ID.Hex(),
+			URL:            v.URL,
+			Title:          v.Title,
+			Subtitle:       v.Subtitle,
+			Follow:         int(v.Follow),
+			ArticlesNumber: 0,
+			Articles:       []graphql.Article{},
 		}
 		for _, v := range v.Articles {
 			publicArticle, err := s.Model.GetPublicArticleByURL(v)
@@ -143,11 +156,101 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 				Read:       false,
 				Later:      false,
 				FeedID:     "",
+				FeedTitle:  feed.Title,
 			})
 		}
+		feed.ArticlesNumber = len(feed.Articles)
 		feeds = append(feeds, feed)
 	}
 	return
+}
+
+func (s *publicService) GetPopularPublicFeeds(page, numPerPage int) (feeds []graphql.Feed, err error) {
+	publicFeeds, err := s.Model.GetPublicFeedsSortedByFollow()
+	if err != nil && err.Error() == "not_found" {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	start := (page - 1) * (numPerPage)
+	end := (page-1)*(numPerPage) + numPerPage
+	if len(publicFeeds) < start {
+		return nil, nil
+	} else if len(publicFeeds) <= end {
+		end = len(publicFeeds)
+	}
+	for i := start; i < end; i++ {
+		var articles []graphql.Article
+		for _, v := range publicFeeds[i].Articles {
+			article, err := s.Model.GetPublicArticleByURL(v)
+			if err != nil {
+				return nil, err
+			}
+			articles = append(articles, graphql.Article{
+				URL:        article.URL,
+				Title:      article.Title,
+				Published:  article.Published,
+				Updated:    article.Updated,
+				Content:    article.Content,
+				Summary:    article.Summary,
+				Categories: article.Categories,
+				Read:       false,
+				Later:      false,
+				FeedID:     "",
+				FeedTitle:  publicFeeds[i].Title,
+			})
+		}
+		feeds = append(feeds, graphql.Feed{
+			ID:             "",
+			PublicID:       publicFeeds[i].ID.Hex(),
+			URL:            publicFeeds[i].URL,
+			Title:          publicFeeds[i].Title,
+			Subtitle:       publicFeeds[i].Subtitle,
+			Follow:         int(publicFeeds[i].Follow),
+			ArticlesNumber: len(articles),
+			Articles:       articles,
+		})
+	}
+	return feeds, nil
+}
+
+func (s *publicService) GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error) {
+	popularArticles, err := s.Model.GetPopularArticles()
+	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-popularArticles.UpdateDate > 60*60*12 {
+		feeds, err := s.GetPopularPublicFeeds(1, 100)
+		if err != nil {
+			return articles, err
+		}
+		for _, v := range feeds {
+			for _, a := range v.Articles {
+				articles = append(articles, a)
+			}
+		}
+		dst := make([]graphql.Article, len(articles))
+		perm := rand.Perm(len(articles))
+		for i, v := range perm {
+			dst[v] = articles[i]
+		}
+		if len(dst) >= 100 {
+			articles = dst[:100]
+		} else {
+			articles = dst
+		}
+		_, err = s.Model.UpdatePopularArticles(articles)
+		if err != nil {
+			return nil, nil
+		}
+	} else {
+		articles = popularArticles.Articles
+	}
+	start := (page - 1) * (numPerPage)
+	end := (page-1)*(numPerPage) + numPerPage
+	if len(articles) < start {
+		return nil, nil
+	} else if len(articles) <= end {
+		end = len(articles)
+	}
+	return articles[start:end], nil
 }
 
 type AtomFeed struct {
@@ -195,6 +298,11 @@ type RSSItem struct {
 
 // 从订阅源拉取数据，更新PublicFeed
 func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
+	u, err := stdUrl.Parse(url)
+	if err != nil {
+		return publicFeed, errors.New("invalid_url")
+	}
+	notSchemaUrl := u.Host + u.Path
 	res, err := http.Get(url)
 	if err != nil {
 		return
@@ -233,12 +341,12 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 			Read:       0,
 		})
 	}
-	err = s.Model.AddOrUpdatePublicArticles(url, articles)
+	err = s.Model.AddOrUpdatePublicArticles(notSchemaUrl, articles)
 	if err != nil {
 		return
 	}
 	if id == "" {
-		publicFeed, err = s.Model.AddPublicFeed(url, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
+		publicFeed, err = s.Model.AddPublicFeed(notSchemaUrl, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	} else {
 		publicFeed, err = s.Model.UpdatePublicFeed(id, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	}

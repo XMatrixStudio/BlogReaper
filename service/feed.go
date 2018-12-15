@@ -1,9 +1,9 @@
 package service
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
-	"github.com/kataras/iris/core/errors"
 	"sort"
 )
 
@@ -11,6 +11,7 @@ type FeedService interface {
 	GetModel() *model.FeedModel
 	AddFeed(userID, id, categoryID string) (feed graphql.Feed, err error)
 	GetFeedsByCategoryID(userID, categoryID string) (feeds []graphql.Feed, err error)
+	GetLaterArticles(userID string, page, numPerPage *int) (articles []graphql.Article, err error)
 	EditFeed(userID, feedID string, title *string, categoryIDs []string) (success bool, err error)
 	RemoveFeed(userID, feedID string) (success bool, err error)
 	EditArticle(userID, feedID, url string, read, later *bool) (success bool, err error)
@@ -94,6 +95,7 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 					Read:       priv.Read,
 					Later:      priv.Later,
 					FeedID:     v.ID.Hex(),
+					FeedTitle:  feed.Title,
 				})
 			}
 		}
@@ -103,9 +105,10 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 		var articles []model.Article
 		for _, av := range feed.Articles {
 			articles = append(articles, model.Article{
-				URL:   av.URL,
-				Read:  av.Read,
-				Later: av.Later,
+				URL:     av.URL,
+				Read:    av.Read,
+				Later:   av.Later,
+				Content: nil,
 			})
 		}
 		err = s.Model.UpdateArticles(userID, v.ID.Hex(), articles)
@@ -113,16 +116,59 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 			return nil, err
 		}
 		feeds = append(feeds, graphql.Feed{
-			ID:       v.ID.Hex(),
-			PublicID: feed.PublicID,
-			URL:      v.URL,
-			Title:    v.Title,
-			Subtitle: feed.Subtitle,
-			Follow:   feed.Follow,
-			Articles: feed.Articles,
+			ID:             v.ID.Hex(),
+			PublicID:       feed.PublicID,
+			URL:            v.URL,
+			Title:          v.Title,
+			Subtitle:       feed.Subtitle,
+			Follow:         feed.Follow,
+			ArticlesNumber: len(feed.Articles),
+			Articles:       feed.Articles,
 		})
 	}
 	return
+}
+
+func (s *feedService) GetLaterArticles(userID string, page, numPerPage *int) (articles []graphql.Article, err error) {
+	privateArticles, err := s.Model.GetLaterArticle(userID)
+	if err != nil && err.Error() == "not_found" {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	var start, end int
+	if page == nil {
+		start = 0
+		end = len(privateArticles)
+	} else {
+		start = (*page - 1) * (*numPerPage)
+		end = (*page-1)*(*numPerPage) + *numPerPage
+	}
+	if len(privateArticles) < start {
+		return nil, nil
+	} else if len(privateArticles) <= end {
+		end = len(privateArticles)
+	}
+	for i := start; i < end; i++ {
+		feed, err := s.Service.Public.GetPublicFeedByURL(privateArticles[i].Content.FeedURL)
+		if err != nil {
+			return nil, err
+		}
+		articles = append(articles, graphql.Article{
+			URL:        privateArticles[i].URL,
+			Title:      privateArticles[i].Content.Title,
+			Published:  privateArticles[i].Content.Published,
+			Updated:    privateArticles[i].Content.Updated,
+			Content:    privateArticles[i].Content.Content,
+			Summary:    privateArticles[i].Content.Summary,
+			Categories: privateArticles[i].Content.Categories,
+			Read:       privateArticles[i].Read,
+			Later:      privateArticles[i].Later,
+			FeedID:     "",
+			FeedTitle:  feed.Title,
+		})
+	}
+	return articles, nil
 }
 
 // 参数为nil表示不修改
@@ -142,7 +188,20 @@ func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs
 }
 
 func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error) {
-	panic("not implement")
+	feed, err := s.Model.GetFeedByID(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	pid := feed.PublicID
+	err = s.Model.RemoveFeed(userID, feedID)
+	if err != nil {
+		return false, err
+	}
+	err = s.Service.Public.GetModel().DecreasePublicFeedFollow(pid.Hex())
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *feedService) EditArticle(userID, feedID, url string, read, later *bool) (success bool, err error) {

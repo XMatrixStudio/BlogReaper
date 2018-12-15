@@ -28,6 +28,8 @@ type Query {
     #   numPerPage - 每页订阅源数
     # @returns:
     #   []Feed - 筛选得到的订阅源
+    # @errors:
+    #   invalid_params - 参数错误
     popularFeeds(page: Int!, numPerPage: Int!): [Feed!]!
 
     # popularArticles
@@ -139,6 +141,7 @@ type Mutation {
     # @returns:
     #   Boolean - 是否修改成功
     # @errors:
+    #   not_login - 未登录
     editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
 
     removeCategory(id: String!): Boolean!
@@ -146,8 +149,12 @@ type Mutation {
     # removeFeed
     # 
     # @params:
+    #   id - 订阅源的id
     # @returns:
+    #   Boolean - 是否移除成功
     # @errors:
+    #   not_login - 未登录
+    #   not_found - 未找到记录
     removeFeed(id: String!): Boolean!
 }
 
@@ -163,10 +170,19 @@ type User {
     #   []Category - 分类
     # @errors:
     #   not_login - 未登录
-    #   invalid_id - 分类不存在
     categories(id: String): [Category!]!
 
-    laterArticles: [Article!]!
+    # laterArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    laterArticles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type UserInfo {
@@ -199,6 +215,7 @@ type Feed {
     title: String!
     subtitle: String!
     follow: Int!
+    articlesNumber: Int!
 
     # articles
     #
@@ -220,5 +237,10 @@ type Article {
     categories: [String!]!
     read: Boolean!
     later: Boolean!
+
+    # only for user's article
     feedId: String!
+
+    # only for later and popular article
+    feedTitle: String!
 }
