@@ -266,6 +266,10 @@ func (m *PublicModel) DecreasePublicFeedFollow(id string) (err error) {
 		if err != nil {
 			return err
 		}
+		err = fb.Delete([]byte(id))
+		if err != nil {
+			return err
+		}
 		return fb.Put([]byte(id), bytes)
 	})
 }

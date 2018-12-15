@@ -245,13 +245,13 @@ func (m *FeedModel) RemoveFeed(userID, feedID string) (err error) {
 			return errors.New("not_found")
 		}
 		feed := Feed{}
+		bson.Unmarshal(bytes, &feed)
+		pid := feed.PublicID
 		err = ub.Delete([]byte(feedID))
 		if err != nil {
 			return err
 		}
-		bson.Unmarshal(bytes, &feed)
-		pid := feed.PublicID
-		err = pub.Delete([]byte(pid))
+		err = pub.Delete([]byte(pid.Hex()))
 		if err != nil {
 			return err
 		}
