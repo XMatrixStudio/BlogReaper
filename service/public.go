@@ -282,11 +282,14 @@ type AtomCategory struct {
 	Term string `xml:"term,attr"`
 }
 
+type RSSTop struct {
+	Channel RSSFeed `xml:"channel"`
+}
+
 type RSSFeed struct {
 	Title string `xml:"title"`
 	Description string `xml:"description"`
-	Author string `xml:"author"`
-	Items []RSSItem `xml:"author"`
+	Items []RSSItem `xml:"item"`
 }
 
 type RSSItem struct {
@@ -294,7 +297,9 @@ type RSSItem struct {
 	Link string `xml:"link"`
 	Description string `xml:"description"`
 	PubDate string `xml:"pubDate"`
+	Categories []string `xml:"category"`
 }
+
 
 // 从订阅源拉取数据，更新PublicFeed
 func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
@@ -318,9 +323,46 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 
 	atomFeed := AtomFeed{}
 	err = xml.Unmarshal(bytes, &atomFeed)
-	if err != nil {
+	if len(atomFeed.Title) == 0 && len(atomFeed.Entries) == 0 {
+		/* atom解析失败，解析rss*/
+		rssTop := RSSTop{}
+		err = xml.Unmarshal(bytes, &rssTop)
+		rssFeed := rssTop.Channel
+		if len(atomFeed.Title) == 0 && len(atomFeed.Entries) == 0 {
+			return
+		}
+		var articlesUrl []string
+		var articles []model.PublicArticle
+		for _, v := range rssFeed.Items {
+			var categories []string
+			for _, vc := range v.Categories {
+				categories = append(categories, vc)
+			}
+			articlesUrl = append(articlesUrl, v.Link)
+			articles = append(articles, model.PublicArticle{
+				URL:        v.Link,
+				FeedURL:    url,
+				Title:      v.Title,
+				Published:  v.PubDate,
+				Updated:    "",
+				Content:    v.Description,
+				Summary:    "",
+				Categories: categories,
+				Read:       0,
+			})
+		}
+		err = s.Model.AddOrUpdatePublicArticles(notSchemaUrl, articles)
+		if err != nil {
+			return
+		}
+		if id == "" {
+			publicFeed, err = s.Model.AddPublicFeed(notSchemaUrl, rssFeed.Title, "", articlesUrl)
+		} else {
+			publicFeed, err = s.Model.UpdatePublicFeed(id, rssFeed.Title, "", articlesUrl)
+		}
 		return
 	}
+	/* atom解析成功*/
 	var articlesUrl []string
 	var articles []model.PublicArticle
 	for _, v := range atomFeed.Entries {
