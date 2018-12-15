@@ -15,6 +15,7 @@ type PublicService interface {
 	GetPublicFeedByID(id string) (feed graphql.Feed, err error)
 	GetPublicFeedByURL(url string) (feed graphql.Feed, err error)
 	GetPublicFeedByKeyword(keyword string) (feeds []graphql.Feed, err error)
+	GetPopularPublicFeeds(page, numPerPage int) (feeds []graphql.Feed, err error)
 }
 
 type publicService struct {
@@ -148,6 +149,63 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 		feeds = append(feeds, feed)
 	}
 	return
+}
+
+func (s *publicService) GetPopularPublicFeeds(page, numPerPage int) (feeds []graphql.Feed, err error) {
+	publicFeeds, err := s.Model.GetPublicFeedsSortedByFollow()
+	if err != nil && err.Error() == "not_found" {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	start := (page - 1) * (numPerPage)
+	end := (page-1)*(numPerPage) + numPerPage
+	if len(publicFeeds) < start {
+		return nil, nil
+	} else if len(publicFeeds) <= end {
+		end = len(publicFeeds)
+	}
+	for i := start; i < end; i++ {
+		var articles []graphql.Article
+		for _, v := range publicFeeds[i].Articles {
+			article, err := s.Model.GetPublicArticleByURL(v)
+			if err != nil {
+				return nil, err
+			}
+			articles = append(articles, graphql.Article{
+				URL:        article.URL,
+				Title:      article.Title,
+				Published:  article.Published,
+				Updated:    article.Updated,
+				Content:    article.Content,
+				Summary:    article.Summary,
+				Categories: article.Categories,
+				Read:       false,
+				Later:      false,
+				FeedID:     "",
+				FeedTitle:  publicFeeds[i].Title,
+			})
+		}
+		feeds = append(feeds, graphql.Feed{
+			ID:             "",
+			PublicID:       publicFeeds[i].ID.Hex(),
+			URL:            publicFeeds[i].URL,
+			Title:          publicFeeds[i].Title,
+			Subtitle:       publicFeeds[i].Subtitle,
+			Follow:         int(publicFeeds[i].Follow),
+			ArticlesNumber: len(articles),
+			Articles:       articles,
+		})
+	}
+	return feeds, nil
+}
+
+func (s *publicService) GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error) {
+	popularArticles, err := s.Model.GetPopularArticles()
+	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-popularArticles.UpdateDate > 60*60*12 {
+		s.GetPopularPublicFeeds(1, 100)
+	}
+	panic("")
 }
 
 type AtomFeed struct {

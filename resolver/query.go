@@ -2,9 +2,21 @@ package resolver
 
 import (
 	"context"
-	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
+	"github.com/kataras/iris/core/errors"
 )
+
+func (r *queryResolver) User(ctx context.Context) (*graphql.User, error) {
+	userID := r.Session.GetString("id")
+	if userID == "" {
+		return nil, errors.New("not_login")
+	}
+	user, err := r.Service.User.GetUserInfo(userID)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
 
 func (r *queryResolver) Feeds(ctx context.Context, keyword string) ([]graphql.Feed, error) {
 	if keyword == "" {
@@ -19,5 +31,12 @@ func (r *queryResolver) PopularArticles(ctx context.Context, page int, numPerPag
 }
 
 func (r *queryResolver) PopularFeeds(ctx context.Context, page int, numPerPage int) ([]graphql.Feed, error) {
-	panic("not implemented")
+	if page <= 0 || numPerPage <= 0 {
+		return nil, errors.New("invalid_params")
+	}
+	feeds, err := r.Service.Public.GetPopularPublicFeeds(page, numPerPage)
+	if err != nil {
+		return nil, err
+	}
+	return feeds, nil
 }
