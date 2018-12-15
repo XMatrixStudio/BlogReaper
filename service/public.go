@@ -226,28 +226,9 @@ func (s *publicService) GetPopularPublicFeeds(page, numPerPage int) (feeds []gra
 func (s *publicService) GetPopularPublicArticles(page, numPerPage int) (articles []graphql.Article, err error) {
 	popularArticles, err := s.Model.GetPopularArticles()
 	if (err != nil && err.Error() == "not_found") || time.Now().Unix()-popularArticles.UpdateDate > 60*60*12 {
-		feeds, err := s.GetPopularPublicFeeds(1, 100)
+		articles, err = s.UpdatePopularPublicArticles()
 		if err != nil {
-			return articles, err
-		}
-		for _, v := range feeds {
-			for _, a := range v.Articles {
-				articles = append(articles, a)
-			}
-		}
-		dst := make([]graphql.Article, len(articles))
-		perm := rand.Perm(len(articles))
-		for i, v := range perm {
-			dst[v] = articles[i]
-		}
-		if len(dst) >= 100 {
-			articles = dst[:100]
-		} else {
-			articles = dst
-		}
-		_, err = s.Model.UpdatePopularArticles(articles)
-		if err != nil {
-			return nil, nil
+			articles = popularArticles.Articles
 		}
 	} else {
 		articles = popularArticles.Articles
@@ -260,6 +241,30 @@ func (s *publicService) GetPopularPublicArticles(page, numPerPage int) (articles
 		end = len(articles)
 	}
 	return articles[start:end], nil
+}
+
+func (s *publicService) UpdatePopularPublicArticles() (articles []graphql.Article, err error) {
+	feeds, err := s.GetPopularPublicFeeds(1, 100)
+	if err != nil {
+		return articles, err
+	}
+	for _, v := range feeds {
+		for _, a := range v.Articles {
+			articles = append(articles, a)
+		}
+	}
+	dst := make([]graphql.Article, len(articles))
+	perm := rand.Perm(len(articles))
+	for i, v := range perm {
+		dst[v] = articles[i]
+	}
+	if len(dst) >= 100 {
+		articles = dst[:100]
+	} else {
+		articles = dst
+	}
+	_, err = s.Model.UpdatePopularArticles(articles)
+	return
 }
 
 type AtomFeed struct {
@@ -426,5 +431,6 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 	} else {
 		publicFeed, err = s.Model.UpdatePublicFeed(id, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	}
+	_, err = s.UpdatePopularPublicArticles()
 	return
 }
