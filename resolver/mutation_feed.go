@@ -70,7 +70,12 @@ func (r *mutationResolver) EditFeed(ctx context.Context, id string, title *strin
 }
 
 func (r *mutationResolver) RemoveCategory(ctx context.Context, id string) (bool, error) {
-	panic("not implemented")
+	userID := r.Session.GetString("id")
+	if userID == "" {
+		return false, errors.New("not_login")
+	}
+	return r.Service.Category.RemoveCategory(userID, id)
+
 }
 
 func (r *mutationResolver) RemoveFeed(ctx context.Context, id string) (bool, error) {

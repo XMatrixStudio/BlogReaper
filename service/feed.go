@@ -180,6 +180,14 @@ func (s *feedService) EditFeed(userID, feedID string, title *string, categoryIDs
 	if title == nil {
 		title = &feed.Title
 	}
+	for _, categoryID := range categoryIDs {
+		_, err := s.Service.Category.GetModel().GetCategoryById(userID, categoryID)
+		if err != nil && err.Error() == "not_found" {
+			return false, errors.New("invalid_category")
+		} else {
+			return false, err
+		}
+	}
 	_, err = s.Model.EditFeed(userID, feedID, *title, categoryIDs)
 	if err != nil {
 		return false, err

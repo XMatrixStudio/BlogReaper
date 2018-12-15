@@ -351,3 +351,25 @@ func (m *FeedModel) EditArticle(userID, feedID, url string, read, later bool, ar
 		return ub.Put([]byte(feedID), bytes)
 	})
 }
+
+func (m *FeedModel) GetCategoryByFeedID(userID, feedID string) (categorieIDs []string, err error){
+	return categorieIDs, m.View(func(b* bolt.Bucket) error {
+		ub := b.Bucket([]byte(userID))
+		if ub == nil {
+			return errors.New("not_found")
+		}
+		bytes := ub.Get([]byte(feedID))
+		if bytes == nil {
+			return errors.New("not_found")
+		}
+		feed := Feed{}
+		err := bson.Unmarshal(bytes, &feed)
+		if err != nil {
+			return err
+		}
+		for _, categoryID := range feed.Categories{
+			categorieIDs = append(categorieIDs, categoryID.Hex())
+		}
+		return nil 
+	})
+}
