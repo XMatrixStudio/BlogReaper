@@ -12,6 +12,7 @@ type Article struct {
 	Categories []string `json:"categories"`
 	Read       bool     `json:"read"`
 	Later      bool     `json:"later"`
+	FeedID     string   `json:"feedId"`
 }
 
 type Category struct {
@@ -22,15 +23,19 @@ type Category struct {
 
 type Feed struct {
 	ID       string    `json:"id"`
+	PublicID string    `json:"publicId"`
 	URL      string    `json:"url"`
 	Title    string    `json:"title"`
 	Subtitle string    `json:"subtitle"`
+	Follow   int       `json:"follow"`
 	Articles []Article `json:"articles"`
 }
 
 type User struct {
-	Email string   `json:"email"`
-	Info  UserInfo `json:"info"`
+	Email         string     `json:"email"`
+	Info          UserInfo   `json:"info"`
+	Categories    []Category `json:"categories"`
+	LaterArticles []Article  `json:"laterArticles"`
 }
 
 type UserInfo struct {

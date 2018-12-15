@@ -1,11 +1,13 @@
 package service
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
 )
 
 type CategoryService interface {
+	GetModel() *model.CategoryModel
 	AddCategory(userID, name string) (category graphql.Category, err error)
 	GetCategories(userID string) (categories []graphql.Category, err error)
 	EditCategory(userID, categoryID, newName string) (success bool, err error)
@@ -21,6 +23,10 @@ func NewCategoryService(s *Service, m *model.CategoryModel) CategoryService {
 		Model:   m,
 		Service: s,
 	}
+}
+
+func (s *categoryService) GetModel() *model.CategoryModel {
+	return s.Model
 }
 
 func (s *categoryService) AddCategory(userID, name string) (category graphql.Category, err error) {
@@ -42,16 +48,29 @@ func (s *categoryService) GetCategories(userID string) (categories []graphql.Cat
 		return categories, err
 	}
 	for _, c := range cs {
-		// TODO Feeds
+		feeds, err := s.Service.Feed.GetFeedsByCategoryID(userID, c.ID.Hex())
+		if err != nil && err.Error() == "not_found" {
+			feeds = nil
+		}
 		categories = append(categories, graphql.Category{
 			ID:    c.ID.Hex(),
 			Name:  c.Name,
-			Feeds: nil,
+			Feeds: feeds,
 		})
 	}
 	return
 }
 
 func (s *categoryService) EditCategory(userID, categoryID, newName string) (success bool, err error) {
-	panic("not implement")
+	category, err := s.Model.GetCategoryByName(userID, newName)
+	if err != nil {
+		return false, err
+	}
+	if category.Name != "" && category.ID.Hex() != categoryID {
+		return false, errors.New("repeat_name")
+	}
+	if category.Name != "" {
+		return true, nil
+	}
+	return s.Model.EditCategory(userID, categoryID, newName)
 }
