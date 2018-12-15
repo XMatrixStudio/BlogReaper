@@ -1,9 +1,9 @@
 package service
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
-	"github.com/kataras/iris/core/errors"
 	"sort"
 )
 

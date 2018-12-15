@@ -2,8 +2,8 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
-	"github.com/kataras/iris/core/errors"
 )
 
 func (r *queryResolver) User(ctx context.Context) (*graphql.User, error) {
