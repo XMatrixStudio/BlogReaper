@@ -32,9 +32,10 @@ type Feed struct {
 }
 
 type User struct {
-	Email      string     `json:"email"`
-	Info       UserInfo   `json:"info"`
-	Categories []Category `json:"categories"`
+	Email         string     `json:"email"`
+	Info          UserInfo   `json:"info"`
+	Categories    []Category `json:"categories"`
+	LaterArticles []Article  `json:"laterArticles"`
 }
 
 type UserInfo struct {
