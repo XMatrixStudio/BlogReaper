@@ -1,10 +1,10 @@
 package model
 
 import (
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/kataras/iris/core/errors"
 	"sort"
 	"strings"
 	"time"

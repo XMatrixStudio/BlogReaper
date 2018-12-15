@@ -2,8 +2,8 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
-	"github.com/kataras/iris/core/errors"
 )
 
 func (r *feedResolver) Articles(ctx context.Context, obj *graphql.Feed, page *int, numPerPage *int) ([]graphql.Article, error) {

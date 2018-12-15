@@ -2,12 +2,13 @@ package service
 
 import (
 	"encoding/xml"
+	"errors"
 	"github.com/XMatrixStudio/BlogReaper/graphql"
 	"github.com/XMatrixStudio/BlogReaper/model"
-	"github.com/kataras/iris/core/errors"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	stdUrl "net/url"
 	"time"
 )
 
@@ -73,7 +74,12 @@ func (s *publicService) GetPublicFeedByID(id string) (feed graphql.Feed, err err
 }
 
 func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err error) {
-	publicFeed, err := s.Model.GetPublicFeedByURL(url)
+	u, err := stdUrl.Parse(url)
+	if err != nil {
+		return feed, errors.New("invalid_url")
+	}
+	notSchemaUrl := u.Host + u.Path
+	publicFeed, err := s.Model.GetPublicFeedByURL(notSchemaUrl)
 	if err != nil && err.Error() != "not_found" {
 		return
 	}
@@ -278,6 +284,11 @@ type AtomCategory struct {
 
 // 从订阅源拉取数据，更新PublicFeed
 func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.PublicFeed, err error) {
+	u, err := stdUrl.Parse(url)
+	if err != nil {
+		return publicFeed, errors.New("invalid_url")
+	}
+	notSchemaUrl := u.Host + u.Path
 	res, err := http.Get(url)
 	if err != nil {
 		return
@@ -315,12 +326,12 @@ func (s *publicService) UpdatePublicFeed(id, url string) (publicFeed model.Publi
 			Read:       0,
 		})
 	}
-	err = s.Model.AddOrUpdatePublicArticles(url, articles)
+	err = s.Model.AddOrUpdatePublicArticles(notSchemaUrl, articles)
 	if err != nil {
 		return
 	}
 	if id == "" {
-		publicFeed, err = s.Model.AddPublicFeed(url, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
+		publicFeed, err = s.Model.AddPublicFeed(notSchemaUrl, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	} else {
 		publicFeed, err = s.Model.UpdatePublicFeed(id, atomFeed.Title, atomFeed.Subtitle, articlesUrl)
 	}
