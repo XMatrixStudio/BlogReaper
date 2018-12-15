@@ -49,6 +49,7 @@ type ComplexityRoot struct {
 		Updated    func(childComplexity int) int
 		Content    func(childComplexity int) int
 		Summary    func(childComplexity int) int
+		PictureUrl func(childComplexity int) int
 		Categories func(childComplexity int) int
 		Read       func(childComplexity int) int
 		Later      func(childComplexity int) int
@@ -658,6 +659,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Article.Summary(childComplexity), true
 
+	case "Article.pictureUrl":
+		if e.complexity.Article.PictureUrl == nil {
+			break
+		}
+
+		return e.complexity.Article.PictureUrl(childComplexity), true
+
 	case "Article.categories":
 		if e.complexity.Article.Categories == nil {
 			break
@@ -1106,6 +1114,11 @@ func (ec *executionContext) _Article(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "pictureUrl":
+			out.Values[i] = ec._Article_pictureUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "categories":
 			out.Values[i] = ec._Article_categories(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -1291,6 +1304,33 @@ func (ec *executionContext) _Article_summary(ctx context.Context, field graphql.
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Summary, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Article_pictureUrl(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Article",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PictureURL, nil
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -4838,6 +4878,7 @@ type Article {
     updated: String!
     content: String!
     summary: String!
+    pictureUrl: String!
     categories: [String!]!
     read: Boolean!
     later: Boolean!

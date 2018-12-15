@@ -44,13 +44,14 @@ func (s *publicService) GetPublicFeedByID(id string) (feed graphql.Feed, err err
 		return
 	}
 	feed = graphql.Feed{
-		ID:       "",
-		PublicID: publicFeed.ID.Hex(),
-		URL:      publicFeed.URL,
-		Title:    publicFeed.Title,
-		Subtitle: publicFeed.Subtitle,
-		Follow:   int(publicFeed.Follow),
-		Articles: nil,
+		ID:             "",
+		PublicID:       publicFeed.ID.Hex(),
+		URL:            publicFeed.URL,
+		Title:          publicFeed.Title,
+		Subtitle:       publicFeed.Subtitle,
+		Follow:         int(publicFeed.Follow),
+		ArticlesNumber: 0,
+		Articles:       nil,
 	}
 	for _, v := range publicFeed.Articles {
 		publicArticle, err := s.Model.GetPublicArticleByURL(v)
@@ -64,12 +65,15 @@ func (s *publicService) GetPublicFeedByID(id string) (feed graphql.Feed, err err
 			Updated:    publicArticle.Updated,
 			Content:    publicArticle.Content,
 			Summary:    publicArticle.Summary,
+			PictureURL: publicArticle.PictureURL,
 			Categories: publicArticle.Categories,
 			Read:       false,
 			Later:      false,
 			FeedID:     "",
+			FeedTitle:  "",
 		})
 	}
+	feed.ArticlesNumber = len(feed.Articles)
 	return
 }
 
@@ -113,6 +117,7 @@ func (s *publicService) GetPublicFeedByURL(url string) (feed graphql.Feed, err e
 			Updated:    publicArticle.Updated,
 			Content:    publicArticle.Content,
 			Summary:    publicArticle.Summary,
+			PictureURL: publicArticle.PictureURL,
 			Categories: publicArticle.Categories,
 			Read:       false,
 			Later:      false,
@@ -152,6 +157,7 @@ func (s *publicService) GetPublicFeedByKeyword(keyword string) (feeds []graphql.
 				Updated:    publicArticle.Updated,
 				Content:    publicArticle.Content,
 				Summary:    publicArticle.Summary,
+				PictureURL: publicArticle.PictureURL,
 				Categories: publicArticle.Categories,
 				Read:       false,
 				Later:      false,
@@ -193,6 +199,7 @@ func (s *publicService) GetPopularPublicFeeds(page, numPerPage int) (feeds []gra
 				Updated:    article.Updated,
 				Content:    article.Content,
 				Summary:    article.Summary,
+				PictureURL: article.PictureURL,
 				Categories: article.Categories,
 				Read:       false,
 				Later:      false,
