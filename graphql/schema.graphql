@@ -149,7 +149,9 @@ type Mutation {
     # removeFeed
     # 
     # @params:
+    #   id - 订阅源的id
     # @returns:
+    #   Boolean - 是否移除成功
     # @errors:
     #   not_login - 未登录
     #   not_found - 未找到记录
