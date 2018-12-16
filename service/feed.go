@@ -83,7 +83,7 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 					break
 				}
 			}
-			if flag == false {
+			if flag == false && priv.Later {
 				feed.Articles = append(feed.Articles, graphql.Article{
 					URL:        priv.URL,
 					Title:      priv.Content.Title,

@@ -4681,7 +4681,7 @@ type Query {
     # @returns:
     #   []Feed - 订阅源
     # @errors:
-    #   empty_keyword - 关键词为空
+    #   invalid_params - 参数错误
     feeds(id:String, keyword: String): [Feed!]!
 
     # popularFeeds
