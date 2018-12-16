@@ -14,7 +14,7 @@ func App(c Config) http.Handler {
 	r.Use(resolver.SessionHttpMiddleware)
 	dr := resolver.DefaultResolver()
 	dr.Service.User.InitViolet(c.Violet)
-	r.Handle("/", handler.Playground("BlogReaper", "/graphql"))
+	r.Handle("/", handler.Playground("BlogReaper", "/api/graphql"))
 	r.Handle("/graphql", handler.GraphQL(graphql.NewExecutableSchema(graphql.Config{
 		Resolvers: dr,
 	}), handler.ResolverMiddleware(resolver.SessionResolverMiddleware)))
