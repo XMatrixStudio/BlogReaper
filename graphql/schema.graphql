@@ -13,7 +13,33 @@ type Query {
     #   not_found - 找不到该用户
     user: User
 
-    categories: [Category]
+    # feeds
+    #
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   invalid_params - 参数错误
+    feeds(id:String, keyword: String): [Feed!]!
+
+    # popularFeeds
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页订阅源数
+    # @returns:
+    #   []Feed - 筛选得到的订阅源
+    # @errors:
+    #   invalid_params - 参数错误
+    popularFeeds(page: Int!, numPerPage: Int!): [Feed!]!
+
+    # popularArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Feed - 筛选得到的文章
+    popularArticles(page: Int!, numPerPage: Int!): [Article!]!
 }
 
 type Mutation {
@@ -23,8 +49,6 @@ type Mutation {
     #   backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
     # @returns:
     #   String! - 登录地址，可能为空
-    # @errors:
-    #   already_login - 已登录
     createLoginUrl(backUrl: String!): String!
 
     # login
@@ -35,7 +59,6 @@ type Mutation {
     # @returns:
     #   User - 用户信息
     # @errors:
-    #   already_login - 已登录
     #   error_state - 状态数错误
     #   violet_error - 从紫罗兰获取数据错误
     #   initial_fail - 初始化用户失败
@@ -43,31 +66,134 @@ type Mutation {
 
     # logout
     #
+    # @returns:
+    #   Boolean - 是否注销成功
+    logout: Boolean!
+
+    # addPublicFeedOrNot
+    #
+    # @params:
+    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
+    # @returns:
+    #   Feed - 订阅源
+    # @errors:
+    #   invalid_url - 订阅源不存在
+    addPublicFeedOrNot(url: String!): Feed
+
+    # addCategory
+    #
+    # @params:
+    #   name - 分类名字
+    # @returns:
+    #   Category - 分类
     # @errors:
     #   not_login - 未登录
-    logout: Boolean!
+    #   repeat_name - 重复分类名
+    addCategory(name: String!): Category
     
     # addFeed
     #
     # @params:
-    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
-    #   categoryId - 分类Id，不为空时考虑优先考虑
-    #   categoryName - 分类名字，Id为空时，创建新的分类
+    #   id - 订阅源Id
+    #   categoryId - 分类Id
     # @returns:
-    #   Category - 只包含添加的订阅的分类
+    #   Feed - 订阅源
     # @errors:
-    #   
-    addFeed(url: String!, categoryId: String, categoryName: String): Category
+    #   not_login - 未登录
+    #   invalid_category - 分类不存在
+    #   invalid_id - 订阅源不存在
+    #   repeat_feed - 重复的订阅源
+    addFeed(id: String!, categoryId: String!): Feed
 
-    editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
+    # editArticle
+    #
+    # @params:
+    #   url - 文章链接
+    #   feedId - 订阅源Id
+    #   read - 标记已读或未读
+    #   later - 标记稍后阅读或取消稍后阅读
+    # @returns:
+    #   Boolean - 是否成功修改文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    #   invalid_feed_or_url - 订阅源id或url非法
+    editArticle(url: String!, feedId: String!, read: Boolean, later: Boolean): Boolean!
+
+    # editCategory
+    #
+    # @params:
+    #   id - 分类Id
+    #   name - 分类的新名字
+    # @returns:
+    #   Boolean - 是否更改成功
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
     editCategory(id: String!, name: String!): Boolean!
-    editFeed(url: String!, title: String, categoryId: String): Boolean!
-    removeFeed(url: String!): Boolean!
+
+    # editFeed
+    #
+    # @params:
+    #   id - 订阅源的id
+    #   title - 更新的标题
+    #   categoryId - 传入的分类的id
+    # @returns:
+    #   Boolean - 是否修改成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 阅读源不存在
+    #   invalid_category - 分类不存在
+    editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
+
+    # removeCategory
+    #
+    # @params:
+    #   id - 分类的id
+    # @returns:
+    #   Boolean - 是否修改成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 分类不存在
+    removeCategory(id: String!): Boolean!
+
+    # removeFeed
+    # 
+    # @params:
+    #   id - 订阅源的id
+    # @returns:
+    #   Boolean - 是否移除成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 未找到记录
+    removeFeed(id: String!): Boolean!
 }
 
 type User {
     email: String!
     info: UserInfo!
+
+    # categories
+    #
+    # @params:
+    #   id - 分类Id
+    # @returns:
+    #   []Category - 分类
+    # @errors:
+    #   not_login - 未登录
+    categories(id: String): [Category!]!
+
+    # laterArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    laterArticles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type UserInfo {
@@ -77,17 +203,39 @@ type UserInfo {
     gender: Int!
 }
 
-type Feed {
-    url: String!
-    title: String!
-    subtitle: String!
-    articles: [Article!]!
-}
-
 type Category {
     id: String!
     name: String!
-    feeds: [Feed!]!
+
+    # feeds
+    #
+    # @params:
+    #   id - 订阅源Id
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
+    feeds(id: String): [Feed!]!
+}
+
+type Feed {
+    id: String!
+    publicId: String!
+    url: String!
+    title: String!
+    subtitle: String!
+    follow: Int!
+    articlesNumber: Int!
+
+    # articles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Article {
@@ -97,7 +245,14 @@ type Article {
     updated: String!
     content: String!
     summary: String!
+    pictureUrl: String!
     categories: [String!]!
     read: Boolean!
     later: Boolean!
+
+    # only for user's article
+    feedId: String!
+
+    # only for later and popular article
+    feedTitle: String!
 }

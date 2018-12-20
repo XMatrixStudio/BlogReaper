@@ -9,9 +9,12 @@ type Article struct {
 	Updated    string   `json:"updated"`
 	Content    string   `json:"content"`
 	Summary    string   `json:"summary"`
+	PictureURL string   `json:"pictureUrl"`
 	Categories []string `json:"categories"`
 	Read       bool     `json:"read"`
 	Later      bool     `json:"later"`
+	FeedID     string   `json:"feedId"`
+	FeedTitle  string   `json:"feedTitle"`
 }
 
 type Category struct {
@@ -21,15 +24,21 @@ type Category struct {
 }
 
 type Feed struct {
-	URL      string    `json:"url"`
-	Title    string    `json:"title"`
-	Subtitle string    `json:"subtitle"`
-	Articles []Article `json:"articles"`
+	ID             string    `json:"id"`
+	PublicID       string    `json:"publicId"`
+	URL            string    `json:"url"`
+	Title          string    `json:"title"`
+	Subtitle       string    `json:"subtitle"`
+	Follow         int       `json:"follow"`
+	ArticlesNumber int       `json:"articlesNumber"`
+	Articles       []Article `json:"articles"`
 }
 
 type User struct {
-	Email string   `json:"email"`
-	Info  UserInfo `json:"info"`
+	Email         string     `json:"email"`
+	Info          UserInfo   `json:"info"`
+	Categories    []Category `json:"categories"`
+	LaterArticles []Article  `json:"laterArticles"`
 }
 
 type UserInfo struct {

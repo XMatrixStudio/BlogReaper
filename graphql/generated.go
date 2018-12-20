@@ -31,8 +31,11 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Category() CategoryResolver
+	Feed() FeedResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -46,43 +49,57 @@ type ComplexityRoot struct {
 		Updated    func(childComplexity int) int
 		Content    func(childComplexity int) int
 		Summary    func(childComplexity int) int
+		PictureUrl func(childComplexity int) int
 		Categories func(childComplexity int) int
 		Read       func(childComplexity int) int
 		Later      func(childComplexity int) int
+		FeedId     func(childComplexity int) int
+		FeedTitle  func(childComplexity int) int
 	}
 
 	Category struct {
 		Id    func(childComplexity int) int
 		Name  func(childComplexity int) int
-		Feeds func(childComplexity int) int
+		Feeds func(childComplexity int, id *string) int
 	}
 
 	Feed struct {
-		Url      func(childComplexity int) int
-		Title    func(childComplexity int) int
-		Subtitle func(childComplexity int) int
-		Articles func(childComplexity int) int
+		Id             func(childComplexity int) int
+		PublicId       func(childComplexity int) int
+		Url            func(childComplexity int) int
+		Title          func(childComplexity int) int
+		Subtitle       func(childComplexity int) int
+		Follow         func(childComplexity int) int
+		ArticlesNumber func(childComplexity int) int
+		Articles       func(childComplexity int, page *int, numPerPage *int) int
 	}
 
 	Mutation struct {
-		CreateLoginUrl func(childComplexity int, backUrl string) int
-		Login          func(childComplexity int, code string, state string) int
-		Logout         func(childComplexity int) int
-		AddFeed        func(childComplexity int, url string, categoryId *string, categoryName *string) int
-		EditArticle    func(childComplexity int, url string, read *bool, later *bool) int
-		EditCategory   func(childComplexity int, id string, name string) int
-		EditFeed       func(childComplexity int, url string, title *string, categoryId *string) int
-		RemoveFeed     func(childComplexity int, url string) int
+		CreateLoginUrl     func(childComplexity int, backUrl string) int
+		Login              func(childComplexity int, code string, state string) int
+		Logout             func(childComplexity int) int
+		AddPublicFeedOrNot func(childComplexity int, url string) int
+		AddCategory        func(childComplexity int, name string) int
+		AddFeed            func(childComplexity int, id string, categoryId string) int
+		EditArticle        func(childComplexity int, url string, feedId string, read *bool, later *bool) int
+		EditCategory       func(childComplexity int, id string, name string) int
+		EditFeed           func(childComplexity int, id string, title *string, categoryIds []string) int
+		RemoveCategory     func(childComplexity int, id string) int
+		RemoveFeed         func(childComplexity int, id string) int
 	}
 
 	Query struct {
-		User       func(childComplexity int) int
-		Categories func(childComplexity int) int
+		User            func(childComplexity int) int
+		Feeds           func(childComplexity int, id *string, keyword *string) int
+		PopularFeeds    func(childComplexity int, page int, numPerPage int) int
+		PopularArticles func(childComplexity int, page int, numPerPage int) int
 	}
 
 	User struct {
-		Email func(childComplexity int) int
-		Info  func(childComplexity int) int
+		Email         func(childComplexity int) int
+		Info          func(childComplexity int) int
+		Categories    func(childComplexity int, id *string) int
+		LaterArticles func(childComplexity int, page *int, numPerPage *int) int
 	}
 
 	UserInfo struct {
@@ -93,19 +110,88 @@ type ComplexityRoot struct {
 	}
 }
 
+type CategoryResolver interface {
+	Feeds(ctx context.Context, obj *Category, id *string) ([]Feed, error)
+}
+type FeedResolver interface {
+	Articles(ctx context.Context, obj *Feed, page *int, numPerPage *int) ([]Article, error)
+}
 type MutationResolver interface {
 	CreateLoginURL(ctx context.Context, backUrl string) (string, error)
 	Login(ctx context.Context, code string, state string) (*User, error)
 	Logout(ctx context.Context) (bool, error)
-	AddFeed(ctx context.Context, url string, categoryId *string, categoryName *string) (*Category, error)
-	EditArticle(ctx context.Context, url string, read *bool, later *bool) (bool, error)
+	AddPublicFeedOrNot(ctx context.Context, url string) (*Feed, error)
+	AddCategory(ctx context.Context, name string) (*Category, error)
+	AddFeed(ctx context.Context, id string, categoryId string) (*Feed, error)
+	EditArticle(ctx context.Context, url string, feedId string, read *bool, later *bool) (bool, error)
 	EditCategory(ctx context.Context, id string, name string) (bool, error)
-	EditFeed(ctx context.Context, url string, title *string, categoryId *string) (bool, error)
-	RemoveFeed(ctx context.Context, url string) (bool, error)
+	EditFeed(ctx context.Context, id string, title *string, categoryIds []string) (bool, error)
+	RemoveCategory(ctx context.Context, id string) (bool, error)
+	RemoveFeed(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context) (*User, error)
-	Categories(ctx context.Context) ([]*Category, error)
+	Feeds(ctx context.Context, id *string, keyword *string) ([]Feed, error)
+	PopularFeeds(ctx context.Context, page int, numPerPage int) ([]Feed, error)
+	PopularArticles(ctx context.Context, page int, numPerPage int) ([]Article, error)
+}
+type UserResolver interface {
+	Categories(ctx context.Context, obj *User, id *string) ([]Category, error)
+	LaterArticles(ctx context.Context, obj *User, page *int, numPerPage *int) ([]Article, error)
+}
+
+func field_Category_feeds_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["id"]; ok {
+		var err error
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+
+}
+
+func field_Feed_articles_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["numPerPage"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg1 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["numPerPage"] = arg1
+	return args, nil
+
 }
 
 func field_Mutation_createLoginUrl_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
@@ -147,7 +233,7 @@ func field_Mutation_login_args(rawArgs map[string]interface{}) (map[string]inter
 
 }
 
-func field_Mutation_addFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func field_Mutation_addPublicFeedOrNot_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 string
 	if tmp, ok := rawArgs["url"]; ok {
@@ -158,34 +244,45 @@ func field_Mutation_addFeed_args(rawArgs map[string]interface{}) (map[string]int
 		}
 	}
 	args["url"] = arg0
-	var arg1 *string
+	return args, nil
+
+}
+
+func field_Mutation_addCategory_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalString(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+
+}
+
+func field_Mutation_addFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalString(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
 	if tmp, ok := rawArgs["categoryId"]; ok {
 		var err error
-		var ptr1 string
-		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg1 = &ptr1
-		}
-
+		arg1, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["categoryId"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["categoryName"]; ok {
-		var err error
-		var ptr1 string
-		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg2 = &ptr1
-		}
-
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["categoryName"] = arg2
 	return args, nil
 
 }
@@ -201,22 +298,17 @@ func field_Mutation_editArticle_args(rawArgs map[string]interface{}) (map[string
 		}
 	}
 	args["url"] = arg0
-	var arg1 *bool
-	if tmp, ok := rawArgs["read"]; ok {
+	var arg1 string
+	if tmp, ok := rawArgs["feedId"]; ok {
 		var err error
-		var ptr1 bool
-		if tmp != nil {
-			ptr1, err = graphql.UnmarshalBoolean(tmp)
-			arg1 = &ptr1
-		}
-
+		arg1, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["read"] = arg1
+	args["feedId"] = arg1
 	var arg2 *bool
-	if tmp, ok := rawArgs["later"]; ok {
+	if tmp, ok := rawArgs["read"]; ok {
 		var err error
 		var ptr1 bool
 		if tmp != nil {
@@ -228,7 +320,21 @@ func field_Mutation_editArticle_args(rawArgs map[string]interface{}) (map[string
 			return nil, err
 		}
 	}
-	args["later"] = arg2
+	args["read"] = arg2
+	var arg3 *bool
+	if tmp, ok := rawArgs["later"]; ok {
+		var err error
+		var ptr1 bool
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalBoolean(tmp)
+			arg3 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["later"] = arg3
 	return args, nil
 
 }
@@ -260,14 +366,14 @@ func field_Mutation_editCategory_args(rawArgs map[string]interface{}) (map[strin
 func field_Mutation_editFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["url"]; ok {
+	if tmp, ok := rawArgs["id"]; ok {
 		var err error
 		arg0, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["url"] = arg0
+	args["id"] = arg0
 	var arg1 *string
 	if tmp, ok := rawArgs["title"]; ok {
 		var err error
@@ -282,20 +388,41 @@ func field_Mutation_editFeed_args(rawArgs map[string]interface{}) (map[string]in
 		}
 	}
 	args["title"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["categoryId"]; ok {
+	var arg2 []string
+	if tmp, ok := rawArgs["categoryIds"]; ok {
 		var err error
-		var ptr1 string
+		var rawIf1 []interface{}
 		if tmp != nil {
-			ptr1, err = graphql.UnmarshalString(tmp)
-			arg2 = &ptr1
+			if tmp1, ok := tmp.([]interface{}); ok {
+				rawIf1 = tmp1
+			} else {
+				rawIf1 = []interface{}{tmp}
+			}
 		}
-
+		arg2 = make([]string, len(rawIf1))
+		for idx1 := range rawIf1 {
+			arg2[idx1], err = graphql.UnmarshalString(rawIf1[idx1])
+		}
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["categoryId"] = arg2
+	args["categoryIds"] = arg2
+	return args, nil
+
+}
+
+func field_Mutation_removeCategory_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalString(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 
 }
@@ -303,14 +430,96 @@ func field_Mutation_editFeed_args(rawArgs map[string]interface{}) (map[string]in
 func field_Mutation_removeFeed_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["url"]; ok {
+	if tmp, ok := rawArgs["id"]; ok {
 		var err error
 		arg0, err = graphql.UnmarshalString(tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["url"] = arg0
+	args["id"] = arg0
+	return args, nil
+
+}
+
+func field_Query_feeds_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["id"]; ok {
+		var err error
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["keyword"]; ok {
+		var err error
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg1 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keyword"] = arg1
+	return args, nil
+
+}
+
+func field_Query_popularFeeds_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["page"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalInt(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["numPerPage"]; ok {
+		var err error
+		arg1, err = graphql.UnmarshalInt(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["numPerPage"] = arg1
+	return args, nil
+
+}
+
+func field_Query_popularArticles_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["page"]; ok {
+		var err error
+		arg0, err = graphql.UnmarshalInt(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["numPerPage"]; ok {
+		var err error
+		arg1, err = graphql.UnmarshalInt(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["numPerPage"] = arg1
 	return args, nil
 
 }
@@ -326,6 +535,60 @@ func field_Query___type_args(rawArgs map[string]interface{}) (map[string]interfa
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+
+}
+
+func field_User_categories_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["id"]; ok {
+		var err error
+		var ptr1 string
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalString(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+
+}
+
+func field_User_laterArticles_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg0 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["numPerPage"]; ok {
+		var err error
+		var ptr1 int
+		if tmp != nil {
+			ptr1, err = graphql.UnmarshalInt(tmp)
+			arg1 = &ptr1
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["numPerPage"] = arg1
 	return args, nil
 
 }
@@ -415,6 +678,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Article.Summary(childComplexity), true
 
+	case "Article.pictureUrl":
+		if e.complexity.Article.PictureUrl == nil {
+			break
+		}
+
+		return e.complexity.Article.PictureUrl(childComplexity), true
+
 	case "Article.categories":
 		if e.complexity.Article.Categories == nil {
 			break
@@ -436,6 +706,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Article.Later(childComplexity), true
 
+	case "Article.feedId":
+		if e.complexity.Article.FeedId == nil {
+			break
+		}
+
+		return e.complexity.Article.FeedId(childComplexity), true
+
+	case "Article.feedTitle":
+		if e.complexity.Article.FeedTitle == nil {
+			break
+		}
+
+		return e.complexity.Article.FeedTitle(childComplexity), true
+
 	case "Category.id":
 		if e.complexity.Category.Id == nil {
 			break
@@ -455,7 +739,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Category.Feeds(childComplexity), true
+		args, err := field_Category_feeds_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Category.Feeds(childComplexity, args["id"].(*string)), true
+
+	case "Feed.id":
+		if e.complexity.Feed.Id == nil {
+			break
+		}
+
+		return e.complexity.Feed.Id(childComplexity), true
+
+	case "Feed.publicId":
+		if e.complexity.Feed.PublicId == nil {
+			break
+		}
+
+		return e.complexity.Feed.PublicId(childComplexity), true
 
 	case "Feed.url":
 		if e.complexity.Feed.Url == nil {
@@ -478,12 +781,31 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Feed.Subtitle(childComplexity), true
 
+	case "Feed.follow":
+		if e.complexity.Feed.Follow == nil {
+			break
+		}
+
+		return e.complexity.Feed.Follow(childComplexity), true
+
+	case "Feed.articlesNumber":
+		if e.complexity.Feed.ArticlesNumber == nil {
+			break
+		}
+
+		return e.complexity.Feed.ArticlesNumber(childComplexity), true
+
 	case "Feed.articles":
 		if e.complexity.Feed.Articles == nil {
 			break
 		}
 
-		return e.complexity.Feed.Articles(childComplexity), true
+		args, err := field_Feed_articles_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Feed.Articles(childComplexity, args["page"].(*int), args["numPerPage"].(*int)), true
 
 	case "Mutation.createLoginUrl":
 		if e.complexity.Mutation.CreateLoginUrl == nil {
@@ -516,6 +838,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Logout(childComplexity), true
 
+	case "Mutation.addPublicFeedOrNot":
+		if e.complexity.Mutation.AddPublicFeedOrNot == nil {
+			break
+		}
+
+		args, err := field_Mutation_addPublicFeedOrNot_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddPublicFeedOrNot(childComplexity, args["url"].(string)), true
+
+	case "Mutation.addCategory":
+		if e.complexity.Mutation.AddCategory == nil {
+			break
+		}
+
+		args, err := field_Mutation_addCategory_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddCategory(childComplexity, args["name"].(string)), true
+
 	case "Mutation.addFeed":
 		if e.complexity.Mutation.AddFeed == nil {
 			break
@@ -526,7 +872,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddFeed(childComplexity, args["url"].(string), args["categoryId"].(*string), args["categoryName"].(*string)), true
+		return e.complexity.Mutation.AddFeed(childComplexity, args["id"].(string), args["categoryId"].(string)), true
 
 	case "Mutation.editArticle":
 		if e.complexity.Mutation.EditArticle == nil {
@@ -538,7 +884,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EditArticle(childComplexity, args["url"].(string), args["read"].(*bool), args["later"].(*bool)), true
+		return e.complexity.Mutation.EditArticle(childComplexity, args["url"].(string), args["feedId"].(string), args["read"].(*bool), args["later"].(*bool)), true
 
 	case "Mutation.editCategory":
 		if e.complexity.Mutation.EditCategory == nil {
@@ -562,7 +908,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EditFeed(childComplexity, args["url"].(string), args["title"].(*string), args["categoryId"].(*string)), true
+		return e.complexity.Mutation.EditFeed(childComplexity, args["id"].(string), args["title"].(*string), args["categoryIds"].([]string)), true
+
+	case "Mutation.removeCategory":
+		if e.complexity.Mutation.RemoveCategory == nil {
+			break
+		}
+
+		args, err := field_Mutation_removeCategory_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveCategory(childComplexity, args["id"].(string)), true
 
 	case "Mutation.removeFeed":
 		if e.complexity.Mutation.RemoveFeed == nil {
@@ -574,7 +932,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RemoveFeed(childComplexity, args["url"].(string)), true
+		return e.complexity.Mutation.RemoveFeed(childComplexity, args["id"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -583,12 +941,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.User(childComplexity), true
 
-	case "Query.categories":
-		if e.complexity.Query.Categories == nil {
+	case "Query.feeds":
+		if e.complexity.Query.Feeds == nil {
 			break
 		}
 
-		return e.complexity.Query.Categories(childComplexity), true
+		args, err := field_Query_feeds_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Feeds(childComplexity, args["id"].(*string), args["keyword"].(*string)), true
+
+	case "Query.popularFeeds":
+		if e.complexity.Query.PopularFeeds == nil {
+			break
+		}
+
+		args, err := field_Query_popularFeeds_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PopularFeeds(childComplexity, args["page"].(int), args["numPerPage"].(int)), true
+
+	case "Query.popularArticles":
+		if e.complexity.Query.PopularArticles == nil {
+			break
+		}
+
+		args, err := field_Query_popularArticles_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PopularArticles(childComplexity, args["page"].(int), args["numPerPage"].(int)), true
 
 	case "User.email":
 		if e.complexity.User.Email == nil {
@@ -603,6 +990,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Info(childComplexity), true
+
+	case "User.categories":
+		if e.complexity.User.Categories == nil {
+			break
+		}
+
+		args, err := field_User_categories_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Categories(childComplexity, args["id"].(*string)), true
+
+	case "User.laterArticles":
+		if e.complexity.User.LaterArticles == nil {
+			break
+		}
+
+		args, err := field_User_laterArticles_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.LaterArticles(childComplexity, args["page"].(*int), args["numPerPage"].(*int)), true
 
 	case "UserInfo.name":
 		if e.complexity.UserInfo.Name == nil {
@@ -722,6 +1133,11 @@ func (ec *executionContext) _Article(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "pictureUrl":
+			out.Values[i] = ec._Article_pictureUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "categories":
 			out.Values[i] = ec._Article_categories(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -734,6 +1150,16 @@ func (ec *executionContext) _Article(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "later":
 			out.Values[i] = ec._Article_later(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "feedId":
+			out.Values[i] = ec._Article_feedId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "feedTitle":
+			out.Values[i] = ec._Article_feedTitle(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
@@ -911,6 +1337,33 @@ func (ec *executionContext) _Article_summary(ctx context.Context, field graphql.
 }
 
 // nolint: vetshadow
+func (ec *executionContext) _Article_pictureUrl(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Article",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PictureURL, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
+// nolint: vetshadow
 func (ec *executionContext) _Article_categories(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
@@ -1000,12 +1453,67 @@ func (ec *executionContext) _Article_later(ctx context.Context, field graphql.Co
 	return graphql.MarshalBoolean(res)
 }
 
+// nolint: vetshadow
+func (ec *executionContext) _Article_feedId(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Article",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedID, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Article_feedTitle(ctx context.Context, field graphql.CollectedField, obj *Article) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Article",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedTitle, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
 var categoryImplementors = []string{"Category"}
 
 // nolint: gocyclo, errcheck, gas, goconst
 func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet, obj *Category) graphql.Marshaler {
 	fields := graphql.CollectFields(ctx, sel, categoryImplementors)
 
+	var wg sync.WaitGroup
 	out := graphql.NewOrderedMap(len(fields))
 	invalid := false
 	for i, field := range fields {
@@ -1025,15 +1533,19 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 				invalid = true
 			}
 		case "feeds":
-			out.Values[i] = ec._Category_feeds(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalid = true
-			}
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._Category_feeds(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
 	}
-
+	wg.Wait()
 	if invalid {
 		return graphql.Null
 	}
@@ -1098,16 +1610,22 @@ func (ec *executionContext) _Category_name(ctx context.Context, field graphql.Co
 func (ec *executionContext) _Category_feeds(ctx context.Context, field graphql.CollectedField, obj *Category) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Category_feeds_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	rctx := &graphql.ResolverContext{
 		Object: "Category",
-		Args:   nil,
+		Args:   args,
 		Field:  field,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Feeds, nil
+		return ec.resolvers.Category().Feeds(rctx, obj, args["id"].(*string))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1160,6 +1678,7 @@ var feedImplementors = []string{"Feed"}
 func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj *Feed) graphql.Marshaler {
 	fields := graphql.CollectFields(ctx, sel, feedImplementors)
 
+	var wg sync.WaitGroup
 	out := graphql.NewOrderedMap(len(fields))
 	invalid := false
 	for i, field := range fields {
@@ -1168,6 +1687,16 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Feed")
+		case "id":
+			out.Values[i] = ec._Feed_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "publicId":
+			out.Values[i] = ec._Feed_publicId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
 		case "url":
 			out.Values[i] = ec._Feed_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -1183,20 +1712,88 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
-		case "articles":
-			out.Values[i] = ec._Feed_articles(ctx, field, obj)
+		case "follow":
+			out.Values[i] = ec._Feed_follow(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "articlesNumber":
+			out.Values[i] = ec._Feed_articlesNumber(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "articles":
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._Feed_articles(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
 	}
-
+	wg.Wait()
 	if invalid {
 		return graphql.Null
 	}
 	return out
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Feed_publicId(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublicID, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalString(res)
 }
 
 // nolint: vetshadow
@@ -1281,7 +1878,7 @@ func (ec *executionContext) _Feed_subtitle(ctx context.Context, field graphql.Co
 }
 
 // nolint: vetshadow
-func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+func (ec *executionContext) _Feed_follow(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
 	rctx := &graphql.ResolverContext{
@@ -1293,7 +1890,67 @@ func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.Co
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Articles, nil
+		return obj.Follow, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalInt(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Feed_articlesNumber(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   nil,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ArticlesNumber, nil
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalInt(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.CollectedField, obj *Feed) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Feed_articles_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Feed",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Feed().Articles(rctx, obj, args["page"].(*int), args["numPerPage"].(*int))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1370,6 +2027,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "addPublicFeedOrNot":
+			out.Values[i] = ec._Mutation_addPublicFeedOrNot(ctx, field)
+		case "addCategory":
+			out.Values[i] = ec._Mutation_addCategory(ctx, field)
 		case "addFeed":
 			out.Values[i] = ec._Mutation_addFeed(ctx, field)
 		case "editArticle":
@@ -1384,6 +2045,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "editFeed":
 			out.Values[i] = ec._Mutation_editFeed(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalid = true
+			}
+		case "removeCategory":
+			out.Values[i] = ec._Mutation_removeCategory(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
@@ -1499,6 +2165,76 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 }
 
 // nolint: vetshadow
+func (ec *executionContext) _Mutation_addPublicFeedOrNot(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_addPublicFeedOrNot_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddPublicFeedOrNot(rctx, args["url"].(string))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*Feed)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Feed(ctx, field.Selections, res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Mutation_addCategory(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_addCategory_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddCategory(rctx, args["name"].(string))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*Category)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Category(ctx, field.Selections, res)
+}
+
+// nolint: vetshadow
 func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
@@ -1517,12 +2253,12 @@ func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddFeed(rctx, args["url"].(string), args["categoryId"].(*string), args["categoryName"].(*string))
+		return ec.resolvers.Mutation().AddFeed(rctx, args["id"].(string), args["categoryId"].(string))
 	})
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*Category)
+	res := resTmp.(*Feed)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
@@ -1530,7 +2266,7 @@ func (ec *executionContext) _Mutation_addFeed(ctx context.Context, field graphql
 		return graphql.Null
 	}
 
-	return ec._Category(ctx, field.Selections, res)
+	return ec._Feed(ctx, field.Selections, res)
 }
 
 // nolint: vetshadow
@@ -1552,7 +2288,7 @@ func (ec *executionContext) _Mutation_editArticle(ctx context.Context, field gra
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EditArticle(rctx, args["url"].(string), args["read"].(*bool), args["later"].(*bool))
+		return ec.resolvers.Mutation().EditArticle(rctx, args["url"].(string), args["feedId"].(string), args["read"].(*bool), args["later"].(*bool))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1618,7 +2354,40 @@ func (ec *executionContext) _Mutation_editFeed(ctx context.Context, field graphq
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EditFeed(rctx, args["url"].(string), args["title"].(*string), args["categoryId"].(*string))
+		return ec.resolvers.Mutation().EditFeed(rctx, args["id"].(string), args["title"].(*string), args["categoryIds"].([]string))
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return graphql.MarshalBoolean(res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Mutation_removeCategory(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_removeCategory_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveCategory(rctx, args["id"].(string))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1651,7 +2420,7 @@ func (ec *executionContext) _Mutation_removeFeed(ctx context.Context, field grap
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveFeed(rctx, args["url"].(string))
+		return ec.resolvers.Mutation().RemoveFeed(rctx, args["id"].(string))
 	})
 	if resTmp == nil {
 		if !ec.HasError(rctx) {
@@ -1690,10 +2459,31 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				out.Values[i] = ec._Query_user(ctx, field)
 				wg.Done()
 			}(i, field)
-		case "categories":
+		case "feeds":
 			wg.Add(1)
 			go func(i int, field graphql.CollectedField) {
-				out.Values[i] = ec._Query_categories(ctx, field)
+				out.Values[i] = ec._Query_feeds(ctx, field)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
+		case "popularFeeds":
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._Query_popularFeeds(ctx, field)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
+		case "popularArticles":
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._Query_popularArticles(ctx, field)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
 				wg.Done()
 			}(i, field)
 		case "__type":
@@ -1741,24 +2531,33 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 }
 
 // nolint: vetshadow
-func (ec *executionContext) _Query_categories(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Query_feeds_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
 	rctx := &graphql.ResolverContext{
 		Object: "Query",
-		Args:   nil,
+		Args:   args,
 		Field:  field,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Categories(rctx)
+		return ec.resolvers.Query().Feeds(rctx, args["id"].(*string), args["keyword"].(*string))
 	})
 	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*Category)
+	res := resTmp.([]Feed)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
@@ -1774,7 +2573,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 		idx1 := idx1
 		rctx := &graphql.ResolverContext{
 			Index:  &idx1,
-			Result: res[idx1],
+			Result: &res[idx1],
 		}
 		ctx := graphql.WithResolverContext(ctx, rctx)
 		f := func(idx1 int) {
@@ -1783,11 +2582,139 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 			}
 			arr1[idx1] = func() graphql.Marshaler {
 
-				if res[idx1] == nil {
-					return graphql.Null
-				}
+				return ec._Feed(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
 
-				return ec._Category(ctx, field.Selections, res[idx1])
+	}
+	wg.Wait()
+	return arr1
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Query_popularFeeds(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Query_popularFeeds_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Query",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().PopularFeeds(rctx, args["page"].(int), args["numPerPage"].(int))
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]Feed)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._Feed(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
+
+	}
+	wg.Wait()
+	return arr1
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Query_popularArticles(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Query_popularArticles_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Query",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().PopularArticles(rctx, args["page"].(int), args["numPerPage"].(int))
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]Article)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._Article(ctx, field.Selections, &res[idx1])
 			}()
 		}
 		if isLen1 {
@@ -1871,6 +2798,7 @@ var userImplementors = []string{"User"}
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *User) graphql.Marshaler {
 	fields := graphql.CollectFields(ctx, sel, userImplementors)
 
+	var wg sync.WaitGroup
 	out := graphql.NewOrderedMap(len(fields))
 	invalid := false
 	for i, field := range fields {
@@ -1889,11 +2817,29 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalid = true
 			}
+		case "categories":
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._User_categories(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
+		case "laterArticles":
+			wg.Add(1)
+			go func(i int, field graphql.CollectedField) {
+				out.Values[i] = ec._User_laterArticles(ctx, field, obj)
+				if out.Values[i] == graphql.Null {
+					invalid = true
+				}
+				wg.Done()
+			}(i, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
 	}
-
+	wg.Wait()
 	if invalid {
 		return graphql.Null
 	}
@@ -1953,6 +2899,138 @@ func (ec *executionContext) _User_info(ctx context.Context, field graphql.Collec
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
 	return ec._UserInfo(ctx, field.Selections, &res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _User_categories(ctx context.Context, field graphql.CollectedField, obj *User) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_User_categories_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "User",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Categories(rctx, obj, args["id"].(*string))
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]Category)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._Category(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
+
+	}
+	wg.Wait()
+	return arr1
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _User_laterArticles(ctx context.Context, field graphql.CollectedField, obj *User) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_User_laterArticles_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "User",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, obj, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().LaterArticles(rctx, obj, args["page"].(*int), args["numPerPage"].(*int))
+	})
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]Article)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._Article(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
+
+	}
+	wg.Wait()
+	return arr1
 }
 
 var userInfoImplementors = []string{"UserInfo"}
@@ -3598,7 +4676,33 @@ type Query {
     #   not_found - 找不到该用户
     user: User
 
-    categories: [Category]
+    # feeds
+    #
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   invalid_params - 参数错误
+    feeds(id:String, keyword: String): [Feed!]!
+
+    # popularFeeds
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页订阅源数
+    # @returns:
+    #   []Feed - 筛选得到的订阅源
+    # @errors:
+    #   invalid_params - 参数错误
+    popularFeeds(page: Int!, numPerPage: Int!): [Feed!]!
+
+    # popularArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Feed - 筛选得到的文章
+    popularArticles(page: Int!, numPerPage: Int!): [Article!]!
 }
 
 type Mutation {
@@ -3608,8 +4712,6 @@ type Mutation {
     #   backUrl - 回调地址，登录之前所处的地址，用于登录成功后跳转回去
     # @returns:
     #   String! - 登录地址，可能为空
-    # @errors:
-    #   already_login - 已登录
     createLoginUrl(backUrl: String!): String!
 
     # login
@@ -3620,7 +4722,6 @@ type Mutation {
     # @returns:
     #   User - 用户信息
     # @errors:
-    #   already_login - 已登录
     #   error_state - 状态数错误
     #   violet_error - 从紫罗兰获取数据错误
     #   initial_fail - 初始化用户失败
@@ -3628,31 +4729,134 @@ type Mutation {
 
     # logout
     #
+    # @returns:
+    #   Boolean - 是否注销成功
+    logout: Boolean!
+
+    # addPublicFeedOrNot
+    #
+    # @params:
+    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
+    # @returns:
+    #   Feed - 订阅源
+    # @errors:
+    #   invalid_url - 订阅源不存在
+    addPublicFeedOrNot(url: String!): Feed
+
+    # addCategory
+    #
+    # @params:
+    #   name - 分类名字
+    # @returns:
+    #   Category - 分类
     # @errors:
     #   not_login - 未登录
-    logout: Boolean!
+    #   repeat_name - 重复分类名
+    addCategory(name: String!): Category
     
     # addFeed
     #
     # @params:
-    #   url - 订阅的链接(不得以'/'结尾，以'http'或'https'开头)
-    #   categoryId - 分类Id，不为空时考虑优先考虑
-    #   categoryName - 分类名字，Id为空时，创建新的分类
+    #   id - 订阅源Id
+    #   categoryId - 分类Id
     # @returns:
-    #   Category - 只包含添加的订阅的分类
+    #   Feed - 订阅源
     # @errors:
-    #   
-    addFeed(url: String!, categoryId: String, categoryName: String): Category
+    #   not_login - 未登录
+    #   invalid_category - 分类不存在
+    #   invalid_id - 订阅源不存在
+    #   repeat_feed - 重复的订阅源
+    addFeed(id: String!, categoryId: String!): Feed
 
-    editArticle(url: String!, read: Boolean, later: Boolean): Boolean!
+    # editArticle
+    #
+    # @params:
+    #   url - 文章链接
+    #   feedId - 订阅源Id
+    #   read - 标记已读或未读
+    #   later - 标记稍后阅读或取消稍后阅读
+    # @returns:
+    #   Boolean - 是否成功修改文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    #   invalid_feed_or_url - 订阅源id或url非法
+    editArticle(url: String!, feedId: String!, read: Boolean, later: Boolean): Boolean!
+
+    # editCategory
+    #
+    # @params:
+    #   id - 分类Id
+    #   name - 分类的新名字
+    # @returns:
+    #   Boolean - 是否更改成功
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
     editCategory(id: String!, name: String!): Boolean!
-    editFeed(url: String!, title: String, categoryId: String): Boolean!
-    removeFeed(url: String!): Boolean!
+
+    # editFeed
+    #
+    # @params:
+    #   id - 订阅源的id
+    #   title - 更新的标题
+    #   categoryId - 传入的分类的id
+    # @returns:
+    #   Boolean - 是否修改成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 阅读源不存在
+    #   invalid_category - 分类不存在
+    editFeed(id: String!, title: String, categoryIds: [String!]): Boolean!
+
+    # removeCategory
+    #
+    # @params:
+    #   id - 分类的id
+    # @returns:
+    #   Boolean - 是否修改成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 分类不存在
+    removeCategory(id: String!): Boolean!
+
+    # removeFeed
+    # 
+    # @params:
+    #   id - 订阅源的id
+    # @returns:
+    #   Boolean - 是否移除成功
+    # @errors:
+    #   not_login - 未登录
+    #   not_found - 未找到记录
+    removeFeed(id: String!): Boolean!
 }
 
 type User {
     email: String!
     info: UserInfo!
+
+    # categories
+    #
+    # @params:
+    #   id - 分类Id
+    # @returns:
+    #   []Category - 分类
+    # @errors:
+    #   not_login - 未登录
+    categories(id: String): [Category!]!
+
+    # laterArticles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_params - 参数错误
+    laterArticles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type UserInfo {
@@ -3662,17 +4866,39 @@ type UserInfo {
     gender: Int!
 }
 
-type Feed {
-    url: String!
-    title: String!
-    subtitle: String!
-    articles: [Article!]!
-}
-
 type Category {
     id: String!
     name: String!
-    feeds: [Feed!]!
+
+    # feeds
+    #
+    # @params:
+    #   id - 订阅源Id
+    # @returns:
+    #   []Feed - 订阅源
+    # @errors:
+    #   not_login - 未登录
+    #   invalid_id - 分类不存在
+    feeds(id: String): [Feed!]!
+}
+
+type Feed {
+    id: String!
+    publicId: String!
+    url: String!
+    title: String!
+    subtitle: String!
+    follow: Int!
+    articlesNumber: Int!
+
+    # articles
+    #
+    # @params:
+    #   page - 页数
+    #   numPerPage - 每页文章数
+    # @returns:
+    #   []Article - 筛选得到的文章
+    articles(page: Int, numPerPage: Int): [Article!]!
 }
 
 type Article {
@@ -3682,9 +4908,16 @@ type Article {
     updated: String!
     content: String!
     summary: String!
+    pictureUrl: String!
     categories: [String!]!
     read: Boolean!
     later: Boolean!
+
+    # only for user's article
+    feedId: String!
+
+    # only for later and popular article
+    feedTitle: String!
 }
 `},
 )
