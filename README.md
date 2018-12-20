@@ -62,6 +62,16 @@ $ docker build -t reaper .
 $ docker run -p 30003:30003 --name blog_reaper -d reaper:latest
 ```
 
+### Stack
+
+Start with MySQL
+
+```bash
+$ docker swarm init
+$ docker stack deploy -c docker-compse.yml reaperstack
+```
+
+
 
 ## Development
 
