@@ -355,32 +355,66 @@ func (m *PublicModel) GetPublicFeedsByKeyword(keyword string) (publicFeeds []Pub
 	return publicFeeds, err
 }
 
+// func (m *PublicModel) GetPublicFeedsSortedByFollow() (publicFeeds []PublicFeed, err error) {
+// 	return publicFeeds, m.View(func(b *bolt.Bucket) error {
+// 		fb := b.Bucket([]byte("feed"))
+// 		if fb == nil {
+// 			return errors.New("not_found")
+// 		}
+// 		err = fb.ForEach(func(k, v []byte) error {
+// 			if string(k) == "key_url_value_id" {
+// 				return nil
+// 			}
+// 			publicFeed := PublicFeed{}
+// 			err = bson.Unmarshal(v, &publicFeed)
+// 			if err != nil {
+// 				return err
+// 			}
+// 			publicFeeds = append(publicFeeds, publicFeed)
+// 			return nil
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
+// 		sort.Slice(publicFeeds, func(i, j int) bool {
+// 			return publicFeeds[i].Follow > publicFeeds[j].Follow
+// 		})
+// 		return nil
+// 	})
+// }
+
 func (m *PublicModel) GetPublicFeedsSortedByFollow() (publicFeeds []PublicFeed, err error) {
-	return publicFeeds, m.View(func(b *bolt.Bucket) error {
-		fb := b.Bucket([]byte("feed"))
-		if fb == nil {
-			return errors.New("not_found")
-		}
-		err = fb.ForEach(func(k, v []byte) error {
-			if string(k) == "key_url_value_id" {
-				return nil
-			}
-			publicFeed := PublicFeed{}
-			err = bson.Unmarshal(v, &publicFeed)
-			if err != nil {
-				return err
-			}
-			publicFeeds = append(publicFeeds, publicFeed)
-			return nil
-		})
+	stmt, err := m.DB.Prepare(`SELECT * FROM feet`)
+	if err != nil {
+		return publicFeeds, err
+	}
+	rows, err := stmt.Query()
+	if err != nil {
+		return publicFeeds, err
+	}
+	num := 0
+	for rows.Next() {
+		var bytes []byte
+		err = rows.Scan(&bytes)
 		if err != nil {
-			return err
+			return publicFeeds, err
 		}
+		publicFeed := PublicFeed{}
+		err = json.Unmarshal(bytes, &publicFeed)
+		if err != nil {
+			return publicFeeds, err
+		}
+		publicFeeds = append(publicFeeds, publicFeed)
+		num ++
+	}
+	if num == 0 {
+		err = errors.New("not_found")
+	} else {
 		sort.Slice(publicFeeds, func(i, j int) bool {
 			return publicFeeds[i].Follow > publicFeeds[j].Follow
 		})
-		return nil
-	})
+	}
+	return publicFeeds, err
 }
 
 // func (m *PublicModel) GetPublicArticleByURL(url string) (article PublicArticle, err error) {
