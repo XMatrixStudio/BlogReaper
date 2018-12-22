@@ -98,7 +98,9 @@ func (s *categoryService) RemoveCategory(userID, categoryID string) (success boo
 	}
 	categoryMap := make(map[string]bool)
 	for _, category := range categories {
-		categoryMap[category.ID] = true
+		if category.ID != categoryID {
+			categoryMap[category.ID] = true
+		}
 	}
 	for _, feed := range feeds {
 		categoryIDs, err := s.Service.Feed.GetModel().GetCategoryByFeedID(userID, feed.ID.Hex())
