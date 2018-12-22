@@ -1,0 +1,13 @@
+Violet:
+  ClientID: 5a72cf55a9971041381cc929
+  ClientKey: uwsnopyylz2jeqg1vyjoc8s6
+  ServerHost: https://oauth.xmatrix.studio/api/v2/
+  LoginURL: https://oauth.xmatrix.studio/Verify/Authorize/
+Server:
+  Port: 30003
+Database:
+  IP: 111.230.240.70
+  Port: 3306
+  Name: reaper
+  Username: reaper
+  Password: 9A6YsMFgrbipjSir
