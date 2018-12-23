@@ -23,6 +23,11 @@ type feedService struct {
 }
 
 func NewFeedService(s *Service, m *model.FeedModel) FeedService {
+	_, err := m.DB.Exec(`CREATE TABLE IF NOT EXISTS ` + m.TableName + ` (json JSON)`)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(2)
+	}
 	return &feedService{
 		Model:   m,
 		Service: s,
@@ -54,7 +59,7 @@ func (s *feedService) AddFeed(userID, id, categoryID string) (feed graphql.Feed,
 	if err != nil {
 		return
 	}
-	feed.ID = privateFeed.ID.Hex()
+	feed.ID = privateFeed.ID
 	feed.Title = privateFeed.Title
 	err = s.Service.Public.GetModel().IncreasePublicFeedFollow(id)
 	return
@@ -66,12 +71,12 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 		return
 	}
 	for _, v := range privateFeeds {
-		feed, err := s.Service.Public.GetPublicFeedByID(v.PublicID.Hex())
+		feed, err := s.Service.Public.GetPublicFeedByID(v.PublicID)
 		if err != nil {
 			return feeds, err
 		}
 		for k := range feed.Articles {
-			feed.Articles[k].FeedID = v.ID.Hex()
+			feed.Articles[k].FeedID = v.ID
 		}
 		for _, priv := range v.Articles {
 			var flag bool
@@ -94,7 +99,7 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 					Categories: priv.Content.Categories,
 					Read:       priv.Read,
 					Later:      priv.Later,
-					FeedID:     v.ID.Hex(),
+					FeedID:     v.ID,
 					FeedTitle:  feed.Title,
 				})
 			}
@@ -111,12 +116,12 @@ func (s *feedService) GetFeedsByCategoryID(userID, categoryID string) (feeds []g
 				Content: nil,
 			})
 		}
-		err = s.Model.UpdateArticles(userID, v.ID.Hex(), articles)
+		err = s.Model.UpdateArticles(userID, v.ID, articles)
 		if err != nil {
 			return nil, err
 		}
 		feeds = append(feeds, graphql.Feed{
-			ID:             v.ID.Hex(),
+			ID:             v.ID,
 			PublicID:       feed.PublicID,
 			URL:            v.URL,
 			Title:          v.Title,
@@ -169,7 +174,7 @@ func (s *feedService) GetLaterArticles(userID string, page, numPerPage *int) (ar
 			Categories: privateArticles[i].Content.Categories,
 			Read:       privateArticles[i].Read,
 			Later:      privateArticles[i].Later,
-			FeedID:     feed.ID.Hex(),
+			FeedID:     feed.ID,
 			FeedTitle:  feed.Title,
 		})
 	}
@@ -210,7 +215,7 @@ func (s *feedService) RemoveFeed(userID, feedID string) (success bool, err error
 	if err != nil {
 		return false, err
 	}
-	err = s.Service.Public.GetModel().DecreasePublicFeedFollow(pid.Hex())
+	err = s.Service.Public.GetModel().DecreasePublicFeedFollow(pid)
 	if err != nil {
 		return false, err
 	}
