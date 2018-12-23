@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"github.com/boltdb/bolt"
 	"github.com/globalsign/mgo/bson"
 	"sort"
 	"encoding/json"
