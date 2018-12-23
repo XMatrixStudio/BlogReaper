@@ -96,7 +96,7 @@ func (s *categoryService) RemoveCategory(userID, categoryID string) (success boo
 		}
 	}
 	for _, feed := range feeds {
-		categoryIDs, err := s.Service.Feed.GetModel().GetCategoryByFeedID(userID, feed.ID.Hex())
+		categoryIDs, err := feed.Categories
 		if err != nil {
 			return false, err
 		}
