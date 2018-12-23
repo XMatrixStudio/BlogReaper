@@ -103,20 +103,17 @@ func (s *categoryService) RemoveCategory(userID, categoryID string) (success boo
 		}
 	}
 	for _, feed := range feeds {
-		categoryIDs, err := s.Service.Feed.GetModel().GetCategoryByFeedID(userID, feed.ID.Hex())
-		if err != nil {
-			return false, err
-		}
+		categoryIDs:= feed.Categories
 		for i, id := range categoryIDs {
 			_, exist := categoryMap[id]
 			if exist {
 				categoriesString := append(categoryIDs[:i],categoryIDs[i+1:]...)
-				_, err := s.Service.Feed.EditFeed(userID, feed.ID.Hex(), nil, categoriesString)
+				_, err := s.Service.Feed.EditFeed(userID, feed.ID, nil, categoriesString)
 				if err != nil {
 					return false, err
 				}
 			} else {
-				_, err := s.Service.Feed.RemoveFeed(userID, feed.ID.Hex())
+				_, err := s.Service.Feed.RemoveFeed(userID, feed.ID)
 				if err != nil {
 					return false, err
 				}
